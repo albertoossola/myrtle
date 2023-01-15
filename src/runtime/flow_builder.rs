@@ -1,4 +1,4 @@
-use crate::{node::Node, behaviour::Behaviour};
+use super::*;
 
 pub struct FlowBuilder {
   nodes : Vec<Box<dyn Behaviour>>
@@ -26,7 +26,7 @@ impl FlowBuilder {
     built
   }
 
-  pub fn new(node : Box<dyn Behaviour>) -> FlowBuilder {
-    FlowBuilder { nodes: vec![node] }
+  pub fn new() -> FlowBuilder {
+    FlowBuilder { nodes: vec![] }
   }
 }

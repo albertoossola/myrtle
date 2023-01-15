@@ -1,7 +1,5 @@
 use core::fmt;
-
-use crate::var_store::VarStore;
-use crate::behaviour::{Behaviour};
+use super::*;
 
 #[derive(Clone, Debug)]
 pub enum NodeData {

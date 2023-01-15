@@ -1,6 +1,5 @@
+use super::*;
 use std::collections::HashMap;
-
-use crate::node::NodeData;
 
 #[derive(Clone)]
 pub struct Var(pub NodeData, pub i32);

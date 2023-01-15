@@ -1,7 +1,4 @@
-use crate::behaviour::Behaviour;
-use crate::node::*;
-use crate::state::State;
-use crate::var_store::{ VarStore, Var };
+use super::*;
 
 pub struct Machine {
   states : Vec<State>,

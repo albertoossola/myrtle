@@ -1,4 +1,4 @@
-use crate::{var_store::VarStore, node::NodeData};
+use super::*;
 
 pub trait Behaviour {
   fn step(&mut self, data : NodeData, vars : &mut VarStore) -> Option<NodeData>;

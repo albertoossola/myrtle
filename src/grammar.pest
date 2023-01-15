@@ -1,0 +1,46 @@
+module = { machine+ }
+
+machine = { "machine" ~ string ~ "{" ~ (buffer | globalVariableDeclaration)* ~ state+ ~ "}" }
+
+buffer = { "buffer" ~ alpha+ ~ "<" ~ digit+ ~ ">" ~ ":" ~ bufferType ~ ";" }
+bufferType = { "circular" | "double" | "stack" }
+
+globalVariableDeclaration = { globalVariable ~ ":" ~ dataType ~ ( "=" ~ literal ) ~ ";" }
+
+dataType = { "int" | "float" | "char" | "bool" }
+
+state = { "state " ~ string ~ "{" ~ flow+ ~ "}" }
+
+flow = { (node ~ ">>")* ~ (node ~ ";" ) }
+
+node = { (fullyQualifiedName ~ "(" ~ args? ~ ")" ) }
+       
+fullyQualifiedName = { (string ~ "::" ~ fullyQualifiedName) | (string) }
+        
+args = { (arg ~ ",")* ~ arg }
+        
+arg = { alpha+ ~ "=" ~ argValue }
+    	
+argValue = { expression | variable }
+
+expression = { digit+ }
+
+variable = { localVariable | globalVariable }
+localVariable = { "$" ~ string }
+globalVariable = { "@" ~ string }
+
+literal = { charLiteral | boolLiteral | number }
+
+charLiteral = { "'" ~ (alpha | digit) ~ "'" }
+boolLiteral = { "true" | "false" }
+
+number = { decimal | integer }
+
+decimal = { "-"? ~ digit* ~ "." ~ digit+ }
+integer = { "-"? ~ digit+ }
+
+string = { alpha+ }
+alpha = { 'a'..'z' | 'A'..'Z' }
+digit = { '0'..'9' }
+
+WHITESPACE = _{ " " | "\n" }

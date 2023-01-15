@@ -1,4 +1,4 @@
-use crate::{var_store::VarStore, node::{Node, NodeData}};
+use super::*;
 
 pub struct State {
     flows : Vec<Node>,

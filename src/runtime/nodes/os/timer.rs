@@ -1,6 +1,5 @@
 use std::time::{Instant, Duration};
-
-use crate::{node::{NodeData}, behaviour::Behaviour};
+use super::*;
 
 pub struct TimerNode {
   last_tick : Instant,
@@ -8,7 +7,7 @@ pub struct TimerNode {
 }
 
 impl Behaviour for TimerNode {
-  fn step(&mut self, data : crate::node::NodeData, vars : &mut crate::var_store::VarStore) -> Option<NodeData> {
+  fn step(&mut self, data : NodeData, vars : &mut VarStore) -> Option<NodeData> {
     if self.last_tick.elapsed() > self.interval {
       self.last_tick = Instant::now();
       return Some(NodeData::Pulse);

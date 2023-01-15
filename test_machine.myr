@@ -1,0 +1,5 @@
+machine main { 
+  state init { 
+    timer() >> print(); 
+  } 
+}

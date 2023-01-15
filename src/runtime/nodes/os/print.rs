@@ -1,5 +1,4 @@
-
-use crate::{node::{NodeData}, behaviour::Behaviour};
+use super::*;
 
 pub struct PrintNode {
 }
@@ -8,7 +7,7 @@ impl Behaviour for PrintNode {
     fn step(
         &mut self,
         data: NodeData,
-        vars: &mut crate::var_store::VarStore,
+        vars: &mut VarStore,
     ) -> Option<NodeData> {
         println!("{}", data);
         Some(data)

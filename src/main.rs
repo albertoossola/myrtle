@@ -1,37 +1,28 @@
-mod node;
-mod nodes;
-mod machine;
-mod state;
-mod var_store;
-mod behaviour; 
-mod flow_builder;
+#[macro_use]
+extern crate pest_derive;
 
-use std::{thread, time::Duration};
+mod runtime;
+mod parser;
 
-use behaviour::Behaviour;
-use flow_builder::FlowBuilder;
-use nodes::{ os::*, utils::* };
+use runtime::*;
+use parser::*;
 
-use node::*;
-use machine::*;
-use state::*;
-use var_store::VarStore;
+use std::{thread, time::Duration, io};
 
-fn main() {    
-    let mut builder = FlowBuilder::new(Box::new(TimerNode::new(Duration::from_micros(10))));
-    builder.append(Box::new(CounterNode::new()));
-    builder.append(Box::new(PrintNode {}));
-    
-    let f_a = builder.build();
+fn main() {
+    let source = std::io::stdin()
+        .lines()
+        .fold(
+            String::new(), 
+            |mut a, f| { a.push_str(f.unwrap().as_str()); a})
+        ;
 
-    let s_a = State::new(vec![*f_a]);
-    let mut m = Machine::new(vec![s_a]);
-
+    let mut machine = parse(source.as_str());
     let mut vars = VarStore::new();
 
     loop {
-        m.step(NodeData::Pulse, &mut vars);
-        //thread::sleep(Duration::from_millis(1));
+        machine.step(NodeData::Pulse, &mut vars);
+        thread::sleep(Duration::from_millis(1));
     }
 }
     
