@@ -23,6 +23,15 @@ impl Behaviour for CounterNode {
   }
 }
 
+impl Parametric for CounterNode {
+  fn set_param(&mut self, param: &str, data : NodeParam) -> () {
+  }
+
+fn get_params(&self) -> &[&str] {
+        todo!()
+    }
+}
+
 impl CounterNode {
   pub fn new() -> CounterNode {
     CounterNode { count: 0 }

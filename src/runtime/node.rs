@@ -83,7 +83,15 @@ impl Node {
     self.behaviour.reset();
   }
 
-  pub fn set_param(&mut self, data : NodeParam) -> () {}
+  pub fn set_param(&mut self, param: &str, data : NodeParam) -> () {
+    self.behaviour.set_param(param, data)
+  }
+
+  pub fn get_params(&self) -> &[&str] {
+    self.behaviour.get_params()
+  }
+
+
   pub fn set_buffer(&mut self, data : NodeData) -> () {
     self.in_buffer = Some(data);
   }

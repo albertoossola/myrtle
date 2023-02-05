@@ -1,9 +1,9 @@
 use super::*;
 
-pub struct PrintNode {
+pub struct PrintBehaviour {
 }
 
-impl Behaviour for PrintNode {
+impl Behaviour for PrintBehaviour {
     fn step(
         &mut self,
         data: NodeData,
@@ -16,4 +16,22 @@ impl Behaviour for PrintNode {
     fn reset(&mut self) { }
 
     fn is_working(&self) -> bool { false }
+}
+
+impl Parametric for PrintBehaviour {
+    fn set_param(&mut self, param: &str, data : NodeParam) -> () {
+        match param {
+            _ => {}
+        }
+    }
+
+    fn get_params(&self) -> &[&str] {
+        &[]
+    }
+}
+
+impl PrintBehaviour {
+    pub fn new() -> PrintBehaviour {
+        PrintBehaviour { }
+    }
 }

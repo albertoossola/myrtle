@@ -1,132 +1,115 @@
-extern crate pest;
-
-use std::time::Duration;
-
-use pest::{Parser, iterators::Pair};
+use chumsky::combinator::Ignored;
+use chumsky::recursive::{Recursive, recursive};
+use chumsky::text::TextParser;
+use chumsky::{
+    combinator::SeparatedBy,
+    prelude::Simple,
+    primitive::{filter, just},
+    text::{keyword, whitespace},
+    *,
+};
 
 use crate::runtime::*;
 
-#[derive(Parser)]
-#[grammar = "grammar.pest"]
 struct MyrtleParser;
 
-pub fn parse(src : &str) -> Machine {
-  match MyrtleParser::parse(Rule::machine, src) {
-    Ok(mut pairs) => { 
-      println!("Parsing.");
+pub fn parser() -> impl Parser<char, Node, Error = Simple<char>> {
+    let identifier = filter(|c: &char| c.is_alphanumeric() || "-_".contains(*c))
+        .repeated()
+        .padded()
+        .collect::<String>()
+        .boxed();
 
-      let first_pair = pairs.next().unwrap();
+    //TODO: Make this better
+    let fq_identifier = filter(|c: &char| c.is_alphanumeric() || ":-_".contains(*c))
+        .repeated()
+        .padded()
+        .collect::<String>()
+        .validate(|name, span, emit| {
+            if registry::make_node(name.as_str()).is_none() {
+                emit(Simple::custom(
+                    span, 
+                    format!("Node not found: {}.", name)
+                ));
+            }
+
+            name
+        })
+        .boxed();
+
+    let literal = text::int::<_, Simple<char>>(10)
+        .map(|s: String| NodeData::Int(s.parse().unwrap()))
+        .boxed();
+
+    let param_value = text::int(10)
+        .map(|s: String| NodeParam::Int(s.parse().unwrap()))
+        .boxed();
+
+    let args = identifier
+        .clone()
+        .then_ignore(just("=").padded())
+        .then(param_value)
+        .boxed();
+
+    let node = fq_identifier
+        .clone()
+        .then(
+            args.separated_by(just(",").padded())
+                .delimited_by(
+                    just("(").padded(), 
+                    just(")").padded()
+                ),
+        )
+        .map(|(name, args)| {
+            return registry::make_node(name.as_str())
+                .map(|mut n| {
+                    for (arg, value) in args.iter() {
+                        n.set_param(arg, value.clone());
+                    }
+                    return n;
+                })
+                .unwrap()
+        })
+        .boxed();
+
     
-      match first_pair.as_rule() {
-        Rule::machine => parse_machine(first_pair),
-        _ => { panic!("Root element is not a machine!"); }
-      }
-    },
-    Err(_) => { panic!("Oh no"); }
-  }
-}
+    let flow = recursive(|flow|
+        node.clone()
+            .then((just(">>").padded().ignore_then(flow)).or_not())
+            .map(|(mut a, b)| {
+                match b {
+                    Some(next) => a.set_next(Box::new(next)),
+                    _ => {}
+                };
+                
+                return a;
+            })
+        )
+        .then_ignore(just(";").padded());
+    
 
-pub fn parse_machine(src : Pair<Rule>) -> Machine {
-  match src.as_rule() {
-    Rule::machine => {
-      let mut statements = src.into_inner();
+    let state = keyword("state")
+        .padded()
+        .ignore_then(identifier.clone())
+        .then_ignore(just("{").padded())
+        .then(flow.repeated())
+        .then_ignore(just("}").padded())
+        .boxed();
 
-      let name_pair = statements.next().unwrap();
-      let machine_name = parse_string(name_pair);
+    let machine = keyword("machine")
+        .ignore_then(identifier.clone())
+        .then_ignore(just("{").padded())
+        .then(state.repeated())
+        .then_ignore(just("}").padded())
+        .map(|(machine_name, states)| {
+            let states_only = states
+                .into_iter()
+                .map(|(_, flows)| State::new(flows))
+                .collect();
 
-      println!("Parsing machine {}", machine_name);
+            Node::new(Box::new(Machine::new(states_only)))
+        })
+        .boxed();
 
-      let mut states = vec![];
-
-      for pair in statements {
-        match pair.as_rule() {
-          Rule::state => {
-            states.push(parse_state(pair));
-          },
-          _ => {
-            println!("Found other rule: {}", pair);
-          }
-        }
-      }
-
-      return Machine::new(states);
-    },
-    _ => { }
-  };
-
-  panic!("MACHINE AAAAAAH");
-}
-
-fn parse_state(src : Pair<Rule>) -> State {
-  match src.as_rule() {
-    Rule::state => {
-
-      let mut statements = src.into_inner();
-
-      //let states = vec![];
-
-      let name_pair = statements.next().unwrap();
-      let state_name = parse_string(name_pair);
-
-      println!("Parsing state {}", state_name);
-
-      let mut flows = vec![];
-
-      for pair in statements {
-        flows.push(parse_flow(pair));
-      }
-
-      return State::new(flows);
-    },
-    _ => { }
-  };
-
-  panic!("AAAAAAAAARGH");
-}
-
-fn parse_flow(src : Pair<Rule>) -> Node {
-  let mut builder = FlowBuilder::new();
-
-  match src.as_rule() {
-    Rule::flow => {
-      println!("Parsing flow...");
-
-      let statements = src.into_inner();
-
-      //let states = vec![];
-
-
-      for pair in statements {
-        match pair.as_rule() {
-          Rule::node => {
-            let mut parts = pair.into_inner();
-            let mut node_name = parse_string(parts.next().unwrap());
-
-            //TODO: auto name matching
-            match node_name.as_str() {
-              "print" => builder.append(Box::new(PrintNode {})),
-              "timer" => builder.append(Box::new(TimerNode::new(Duration::from_millis(200)))),
-              _ => { panic!("Unrecognized node \"{}\"", node_name) }
-            };
-
-            println!("Node {}", node_name);
-          },
-          _ => { println!("Found other token: {}", pair) }
-        }
-        //states.push(parse_state(pair.into_inner()));
-      }
-
-    },
-    _ => { }
-  };
-
-  return *builder.build();
-}
-
-fn parse_args(src : Pair<Rule>) -> () {
-
-}
-
-fn parse_string(pair : Pair<Rule>) -> String {
-  return pair.as_str().to_string();
+    return machine;
 }

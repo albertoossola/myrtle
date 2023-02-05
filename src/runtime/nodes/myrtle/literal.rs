@@ -1,44 +1,39 @@
+use crate::runtime::{NodeData, Behaviour, Parametric, NodeParam};
+
 pub struct LiteralNode {
-  status : NodeStatus,
   value : NodeData
 }
 
 impl Behaviour for LiteralNode {
-    fn step(&mut self, data : crate::node::NodeData, vars : &mut crate::var_store::VarStore) -> crate::node::NodeStatus {
-      match data {
-        NodeData::Pulse => { },
-        _ => { self.status = NodeStatus::Full }
-      };
+  fn step(&mut self, data : NodeData, vars : &mut crate::runtime::VarStore) -> Option<NodeData> {
+    Some(self.value.clone())
+  }
 
-      self.status
+  fn is_working(&self) -> bool { false }
+
+  fn reset(&mut self) -> () { }
+}
+
+impl Parametric for LiteralNode {
+  fn set_param(&mut self, param: &str, data : crate::runtime::NodeParam) -> () {
+    match (param, data) {
+      ("value", NodeParam::Str(_)) => {},
+      ("value", NodeParam::Int(i)) => { self.value = NodeData::Int(i) }, 
+      ("value", NodeParam::Char(c)) => { self.value = NodeData::Char(c) }, 
+      ("value", NodeParam::Byte(b)) => { self.value = NodeData::Byte(b) }, 
+      ("value", NodeParam::Bool(b)) => { self.value = NodeData::Bool(b) }, 
+      ("value", NodeParam::Float(f)) => { self.value = NodeData::Float(f) }, 
+      _ => {}
     }
+  }
 
-    fn set_param(&mut self, data : crate::node::NodeParam) -> () {
-       
-    }
-
-    fn get_status(&self) -> crate::node::NodeStatus {
-        self.status
-    }
-
-    fn pop_buffer(&mut self) -> Option<crate::node::NodeData> {
-      let out = match self.status {
-        NodeStatus::Full => Some(self.value.clone()),
-        _ => None
-      };
-
-      self.status = NodeStatus::Idle;
-
-      out
-    }
-
-    fn reset(&mut self) {
-      self.status = NodeStatus::Idle;
-    }
+  fn get_params(&self) -> &[&str] {
+      todo!()
+  }
 }
 
 impl LiteralNode {
-  pub fn new(value : NodeData) -> LiteralNode {
-    LiteralNode { status: NodeStatus::Idle, value }
+  pub fn new() -> LiteralNode {
+    LiteralNode { value: NodeData::Pulse }
   }
 }

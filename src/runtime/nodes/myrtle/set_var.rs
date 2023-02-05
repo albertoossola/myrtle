@@ -1,39 +1,41 @@
 use std::io::Empty;
 
-use crate::node::Node;
+use crate::{runtime::{Behaviour, Parametric, NodeParam}};
 
-pub struct SetVarNode {
+pub struct SetVarBehaviour {
   var : String
 }
 
-impl Node for SetVarNode {
-    fn step(&mut self, data : crate::node::NodeData, vars : &mut crate::var_store::VarStore) -> crate::node::NodeStatus {
-      match data {
-        crate::node::NodeData::Pulse => {},
-        _ =>  { vars.set(&self.var, data); }
-      };
-
-      crate::node::NodeStatus::Idle
+impl Behaviour for SetVarBehaviour {
+    fn step(&mut self, data : crate::runtime::NodeData, vars : &mut crate::runtime::VarStore) -> Option<crate::runtime::NodeData> {
+      vars.set(&self.var, data.clone());
+      Some(data.clone())
     }
 
-    fn set_param(&mut self, data : crate::node::NodeParam) -> () {
-      
+    fn is_working(&self) -> bool {
+      false
     }
 
-    fn get_status(&self) -> crate::node::NodeStatus {
-      crate::node::NodeStatus::Idle
+    fn reset(&mut self) -> () { }
+}
+
+impl Parametric for SetVarBehaviour {
+    fn set_param(&mut self, param: &str, data : crate::runtime::NodeParam) -> () {
+      match (param, data) {
+        ("variable", NodeParam::Str(var_name)) => {
+          self.var = var_name;
+        },
+        _ => {}
+      }
     }
 
-    fn pop_buffer(&mut self) -> Option<crate::node::NodeData> {
-      None
-    }
-
-    fn reset(&mut self) {
+    fn get_params(&self) -> &[&str] {
+      &["variable"]
     }
 }
 
-impl SetVarNode {
-  pub fn new(var : &str) -> SetVarNode {
-    SetVarNode { var: var.to_string() }
+impl SetVarBehaviour {
+  pub fn new() -> SetVarBehaviour {
+    SetVarBehaviour { var: "".to_string() }
   } 
 }

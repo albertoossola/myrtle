@@ -1,7 +1,7 @@
 mod print;
-pub use print::PrintNode;
+pub use print::PrintBehaviour;
 
 mod timer;
-pub use timer::TimerNode;
+pub use timer::TimerBehaviour;
 
 use super::super::*;

@@ -7,7 +7,7 @@ pub struct Machine {
 }
 
 impl Behaviour for Machine {
-  fn step(&mut self, data : NodeData, vars : &mut VarStore) -> Option<NodeData> {
+  fn step(&mut self, _ : NodeData, vars : &mut VarStore) -> Option<NodeData> {
     match vars.get("@state") {
       Some(Var(NodeData::Int(value), _)) => {
         let clamped_value = (*value as usize).clamp(0, self.states.len() - 1); 
@@ -47,6 +47,14 @@ impl Behaviour for Machine {
     //That might react to the input event
 
     false
+  }
+}
+
+impl Parametric for Machine {
+  fn set_param(&mut self, param: &str, data : NodeParam) -> () { }
+
+  fn get_params(&self) -> &[&str] {
+    todo!()
   }
 }
 
