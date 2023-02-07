@@ -1,17 +1,13 @@
-use chumsky::combinator::Ignored;
-use chumsky::recursive::{Recursive, recursive};
+use chumsky::recursive::{recursive};
 use chumsky::text::TextParser;
 use chumsky::{
-    combinator::SeparatedBy,
     prelude::Simple,
     primitive::{filter, just},
-    text::{keyword, whitespace},
+    text::{keyword},
     *,
 };
 
 use crate::runtime::*;
-
-struct MyrtleParser;
 
 pub fn parser() -> impl Parser<char, Node, Error = Simple<char>> {
     let identifier = filter(|c: &char| c.is_alphanumeric() || "-_".contains(*c))
@@ -37,12 +33,33 @@ pub fn parser() -> impl Parser<char, Node, Error = Simple<char>> {
         })
         .boxed();
 
-    let literal = text::int::<_, Simple<char>>(10)
-        .map(|s: String| NodeData::Int(s.parse().unwrap()))
+    let integer = text::int::<_, Simple<char>>(10)
+        .map(|s: String| s.parse().unwrap())
         .boxed();
 
-    let param_value = text::int(10)
-        .map(|s: String| NodeParam::Int(s.parse().unwrap()))
+    let string = filter(|c: &char| *c != '"')
+        .repeated()
+        .delimited_by(just('"'), just('"'))
+        .padded()
+        .collect()
+        .boxed();
+
+    let literal_integer = integer.clone()
+        .map(|i: i32| NodeData::Int(i))
+        .boxed();
+
+    let literal = literal_integer.clone();
+
+    let param_integer = integer.clone()
+        .map(|i: i32| NodeParam::Int(i))
+        .boxed();
+        
+    let param_string = string.clone()
+        .map(|s: String| NodeParam::Str(s))
+        .boxed();
+
+    let param_value = param_integer.clone()
+        .or(param_string.clone())
         .boxed();
 
     let args = identifier

@@ -1,10 +1,15 @@
 machine main { 
-  state entry { 
-    os::timer(interval=200) >> utils::counter() >> myrtle::set_var();
-    myrtle::watch_var() >> os::print();
-  } 
+  state a { 
+    os::timer(interval=200) 
+      >> myrtle::literal(value=2) 
+      >> os::print()
+      >> myrtle::set_var(variable="@state");
+  }
 
-  state other {
-    os::timer(interval=1000) >> utils::counter() >> os::print();
+  state b {
+    os::timer(interval=200) 
+      >> myrtle::literal(value=0) 
+      >> os::print() 
+      >> myrtle::set_var(variable="@state");
   }
 }
