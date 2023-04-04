@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "libmyrtle",
+    "myrtle_rp2040"
+]
