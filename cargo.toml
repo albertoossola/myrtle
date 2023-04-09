@@ -2,5 +2,6 @@
 
 members = [
     "libmyrtle",
-    "myrtle_rp2040"
+    "myrtle_testbench",
+    "myrtle_rp2040",
 ]
