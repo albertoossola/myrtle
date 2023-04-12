@@ -22,7 +22,9 @@ fn main() {
 
     let source: String = String::from_utf8(fs::read("./main.myr").unwrap()).unwrap();
 
-    let mut machine = parse_machine(source.as_str()).unwrap().1;
+    let mut machine_ast = parse_machine(source.as_str()).unwrap().1;
+
+    let mut machine = make_machine(&mut machine_ast).unwrap();
 
     //Add a led to the variables
     machine.variables.insert(

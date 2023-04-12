@@ -1,6 +1,6 @@
 /* Buffer */
 
-use crate::{nodedata::NodeData, symbols::Symbol};
+use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, NodeParam};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::slice::Iter;
 
@@ -48,6 +48,7 @@ pub trait Behaviour {
     fn is_working(&self) -> bool;
     fn run(&mut self, context: BehaviourRunContext) -> ();
     fn reset(&mut self) -> ();
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode>;
 }
 
 /* Node */
@@ -145,6 +146,16 @@ impl Behaviour for SetVarBehaviour {
     fn reset(&mut self) -> () {
         todo!()
     }
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        match args.remove("var") {
+            Some(NodeParam::String(var)) => self.var_name = var,
+            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
+            None => Err(ErrorCode::ArgumentRequired)?,
+        };
+
+        Ok(())
+    }
 }
 
 /* Emit */
@@ -182,6 +193,16 @@ impl Behaviour for EmitBehaviour {
     fn reset(&mut self) -> () {
         self.cur = 0;
     }
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        match args.remove("items") {
+            Some(NodeParam::Seq(items)) => self.values = items,
+            None => Err(ErrorCode::ArgumentRequired)?,
+            _ => Err(ErrorCode::InvalidArgumentType)?,
+        };
+
+        Ok(())
+    }
 }
 
 /* Literal */
@@ -206,6 +227,11 @@ impl Behaviour for LiteralBehaviour {
     }
 
     fn reset(&mut self) -> () {}
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        //TODO: Implement this
+        return Ok(());
+    }
 }
 
 /* PrintBehaviour */
@@ -221,19 +247,24 @@ impl Behaviour for PrintBehaviour {
     }
 
     fn reset(&mut self) -> () {}
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        //TODO: Implement this
+        return Ok(());
+    }
 }
 
 /* TimerBehaviour */
 
 pub struct TimerBehaviour {
-    pub interval: u64,
+    pub ms: u64,
     pub last_tick: u64,
 }
 
 impl TimerBehaviour {
     pub fn new(interval: u64) -> TimerBehaviour {
         TimerBehaviour {
-            interval: interval,
+            ms: interval,
             last_tick: 0,
         }
     }
@@ -246,7 +277,7 @@ impl Behaviour for TimerBehaviour {
 
     fn run(&mut self, context: BehaviourRunContext) -> () {
         let elapsed = context.current_ticks - self.last_tick;
-        if elapsed > self.interval {
+        if elapsed > self.ms {
             self.last_tick = context.current_ticks;
 
             context.out_buf.push(NodeData::Int(1));
@@ -254,6 +285,16 @@ impl Behaviour for TimerBehaviour {
     }
 
     fn reset(&mut self) -> () {}
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        match args.remove("ms") {
+            Some(NodeParam::Base(NodeData::Int(var))) => self.ms = var as u64,
+            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
+            None => Err(ErrorCode::ArgumentRequired)?,
+        };
+
+        Ok(())
+    }
 }
 
 /* CountBehaviour */
@@ -274,5 +315,10 @@ impl Behaviour for CountBehaviour {
 
     fn reset(&mut self) -> () {
         self.c = 0;
+    }
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        //TODO: Implement this
+        return Ok(());
     }
 }

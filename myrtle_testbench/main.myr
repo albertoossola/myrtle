@@ -1,9 +1,9 @@
 machine main {
     state entry { 
-        timer() >> emit() >> setvar()
+        timer(ms=300) >> emit(items=[1, 0]) >> setvar(var="led");
     }
 
     state foobar {
-        timer()
+        timer(ms=1000);
     }
 }

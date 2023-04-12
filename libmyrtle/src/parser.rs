@@ -6,7 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use nom::{
-    bytes::complete::tag,
+    bytes::complete::{is_not, tag},
     character::complete::{alphanumeric1, anychar, i32, multispace0},
     combinator::map,
     error::ParseError,
@@ -16,8 +16,9 @@ use nom::{
 };
 
 use crate::{
-    nodedata, Behaviour, EmitBehaviour, Machine, Node, NodeBuffer, NodeData, SetVarBehaviour,
-    State, TimerBehaviour,
+    ast::{FlowAST, MachineAST, NodeAST, StateAST},
+    nodedata, Behaviour, EmitBehaviour, ErrorCode, Machine, Node, NodeBuffer, NodeData, NodeParam,
+    SetVarBehaviour, State, TimerBehaviour,
 };
 
 fn ws<'a, F, O, E: ParseError<&'a str>>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
@@ -41,85 +42,79 @@ fn parse_bool(i: &str) -> IResult<&str, NodeData> {
     })(i);
 }
 
-fn parse_node_data(i: &str) -> IResult<&str, NodeData> {
+fn parse_primitive(i: &str) -> IResult<&str, NodeData> {
     return parse_int.or(parse_char).or(parse_bool).parse(i);
 }
 
-fn parse_param(i: &str) -> IResult<&str, (String, NodeData)> {
+fn parse_seq(i: &str) -> IResult<&str, NodeParam> {
+    let (i, _) = ws(tag("["))(i)?;
+    let (i, items) = separated_list0(ws(tag(",")), parse_primitive)(i)?;
+    let (i, _) = ws(tag("]"))(i)?;
+
+    return Ok((i, NodeParam::Seq(items)));
+}
+
+fn parse_string(i: &str) -> IResult<&str, NodeParam> {
+    let (i, content) = ws(delimited(tag("\""), is_not("\""), tag("\"")))(i)?;
+
+    Ok((i, NodeParam::String(content.to_string())))
+}
+
+fn parse_arg_value(i: &str) -> IResult<&str, NodeParam> {
+    return parse_seq
+        .or(parse_string)
+        .or(parse_primitive.map(|p| NodeParam::Base(p)))
+        .parse(i);
+}
+
+fn parse_arg(i: &str) -> IResult<&str, (String, NodeParam)> {
     let (i, (param, value)) =
-        separated_pair(ws(alphanumeric1), ws(tag("=")), ws(parse_node_data))(i)?;
+        separated_pair(ws(alphanumeric1), ws(tag("=")), ws(parse_arg_value))(i)?;
 
     return Ok((i, (param.to_string(), value)));
 }
 
-fn get_behaviour(name: &str) -> Option<Box<dyn Behaviour>> {
-    match name {
-        "timer" => Some(Box::new(TimerBehaviour {
-            interval: 200,
-            last_tick: 0,
-        })),
-        "setvar" => Some(Box::new(SetVarBehaviour::new("led".to_string()))),
-        "emit" => Some(Box::new(EmitBehaviour::new(vec![
-            NodeData::Int(0),
-            NodeData::Int(1),
-        ]))),
-        _ => None,
-    }
-}
-
-fn parse_node(i: &str) -> IResult<&str, Node> {
+fn parse_node(i: &str) -> IResult<&str, NodeAST> {
     let (i, kind) = ws(alphanumeric1)(i)?;
     let (i, _) = ws(tag("("))(i)?;
-    //let (i, args) = separated_list0(ws(tag(",")), parse_param)(i)?;
-    let (i, _) = ws(tag(")"))(i)?;
+    let (i, args) = separated_list0(ws(tag(",")), parse_arg)(i)
+        .map(|(i, args)| (i, BTreeMap::from_iter(args.into_iter())))?;
 
-    //TODO: Handle errors
-    let behaviour = get_behaviour(kind).unwrap();
+    let (i, _) = ws(tag(")"))(i)?;
 
     return Ok((
         i,
-        Node {
-            in_buf: NodeBuffer {
-                data: NodeData::Nil,
-            },
-            behaviour,
-            next: None,
+        NodeAST {
+            kind: String::from(kind),
+            args: args,
         },
     ));
 }
 
-fn parse_state(i: &str) -> IResult<&str, (String, State)> {
+fn parse_flow(i: &str) -> IResult<&str, FlowAST> {
+    let (i, nodes) = separated_list1(ws(tag(">>")), parse_node)(i)?;
+    let (i, _) = ws(tag(";"))(i)?;
+
+    return Ok((i, FlowAST { nodes }));
+}
+
+fn parse_state(i: &str) -> IResult<&str, StateAST> {
     let (i, _) = ws(tag("state"))(i)?;
     let (i, name) = ws(alphanumeric1)(i)?;
     let (i, _) = ws(tag("{"))(i)?;
-    let (i, mut flows) = separated_list1(ws(tag(">>")), parse_node)(i)?;
+    let (i, flows) = many0(parse_flow)(i)?;
     let (i, _) = ws(tag("}"))(i)?;
-
-    //link the flows together
-    let boxed: Vec<Box<Node>> = flows.into_iter().map(|n| Box::new(n)).collect();
-
-    let flow = boxed
-        .into_iter()
-        .rev()
-        .fold(None, |acc, mut x| {
-            x.next = acc;
-            return Some(x);
-        })
-        .unwrap();
 
     return Ok((
         i,
-        (
-            name.to_string(),
-            State {
-                flows: vec![*flow],
-                vars: BTreeMap::new(),
-            },
-        ),
+        StateAST {
+            name: name.to_string(),
+            flows,
+        },
     ));
 }
 
-pub fn parse_machine(i: &str) -> IResult<&str, Machine> {
+pub fn parse_machine(i: &str) -> IResult<&str, MachineAST> {
     let (i, _) = ws(tag("machine"))(i)?;
     let (i, name) = ws(alphanumeric1)(i)?;
     let (i, _) = ws(tag("{"))(i)?;
@@ -128,10 +123,9 @@ pub fn parse_machine(i: &str) -> IResult<&str, Machine> {
 
     return Ok((
         i,
-        Machine {
-            states: BTreeMap::from_iter(states),
-            variables: BTreeMap::new(),
-            cur_state: String::from("entry"),
+        MachineAST {
+            name: String::from(name),
+            states: states,
         },
     ));
 }
