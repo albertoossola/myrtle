@@ -1,9 +1,10 @@
-machine main {
-    state entry { 
-        timer(ms=300) >> emit(items=[1, 0]) >> setvar(var="led");
-    }
+device {
+    btn = in(pin=5);
+    led = out(pin=8);
+}
 
-    state foobar {
-        timer(ms=1000);
+machine main {
+    state entry {
+        watchvar(var="btn") >> literal(value=1) >> setvar(var="led");
     }
 }

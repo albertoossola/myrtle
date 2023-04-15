@@ -16,21 +16,18 @@ fn main() {
 
     println!("Initializing HAL...");
 
-    let mut hal_instance = hal::TestHal::init();
+    let mut hal_instance = hal::TestHal {};
+    hal_instance.init();
 
     println!("Loading program from file...");
 
     let source: String = String::from_utf8(fs::read("./main.myr").unwrap()).unwrap();
 
-    let mut machine_ast = parse_machine(source.as_str()).unwrap().1;
+    let mut machine_ast = parse_program(source.as_str()).unwrap().1;
 
-    let mut machine = make_machine(&mut machine_ast).unwrap();
+    let mut machine = make_program(&mut hal_instance, &mut machine_ast).unwrap();
 
-    //Add a led to the variables
-    machine.variables.insert(
-        String::from("led"),
-        Symbol::new(hal_instance.set_push_pull_pin(25)),
-    );
+    println!("Loaded, running.");
 
     loop {
         let context = MachineRunContext {

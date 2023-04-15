@@ -1,9 +1,21 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec, vec::Vec};
 
-use crate::{
-    ast::{FlowAST, MachineAST, NodeAST, StateAST},
-    Behaviour, EmitBehaviour, ErrorCode, Machine, Node, SetVarBehaviour, State, TimerBehaviour,
-};
+use crate::{ast::*, *};
+
+pub fn make_program(
+    adapter: &mut dyn HWAdapter,
+    ast: &mut ProgramAST,
+) -> Result<Machine, ErrorCode> {
+    let mut machine = make_machine(&mut ast.machine)?;
+
+    for (key, mut endpoint) in ast.device.endpoints.iter_mut() {
+        let symbol = make_endpoint(adapter, &mut endpoint)?;
+
+        machine.variables.insert(key.clone(), symbol);
+    }
+
+    return Ok(machine);
+}
 
 pub fn make_machine(ast: &mut MachineAST) -> Result<Machine, ErrorCode> {
     let states_result: Result<Vec<(String, State)>, ErrorCode> = ast
@@ -59,7 +71,9 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     let mut behaviour: Box<dyn Behaviour> = match ast.kind.as_str() {
         "timer" => Box::new(TimerBehaviour::new(500)),
         "emit" => Box::new(EmitBehaviour::new(vec![])),
+        "literal" => Box::new(LiteralBehaviour::new()),
         "setvar" => Box::new(SetVarBehaviour::new(String::from(""))),
+        "watchvar" => Box::new(WatchVarBehaviour::new()),
         _ => Err(ErrorCode::UnknownNodeKind)?,
     };
 
@@ -74,4 +88,30 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     };
 
     return Ok(node);
+}
+
+fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<Symbol, ErrorCode> {
+    match ast.kind.as_str() {
+        "out" => {
+            let led_num = ast.args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
+
+            match led_num {
+                NodeParam::Base(crate::NodeData::Int(num)) => {
+                    Ok(Symbol::new(adapter.set_push_pull_pin(num)))
+                }
+                _ => Err(ErrorCode::InvalidArgumentType),
+            }
+        }
+        "in" => {
+            let led_num = ast.args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
+
+            match led_num {
+                NodeParam::Base(crate::NodeData::Int(num)) => {
+                    Ok(Symbol::new(adapter.set_input_pin(num)))
+                }
+                _ => Err(ErrorCode::InvalidArgumentType),
+            }
+        }
+        _ => Err(ErrorCode::UnknownNodeKind),
+    }
 }

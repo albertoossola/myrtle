@@ -47,7 +47,7 @@ impl Symbol {
             } else {
                 self.polled_data = data_from_source;
                 self.listeners.iter_mut().for_each(|l| {
-                    l.up_to_date = true;
+                    l.up_to_date = false;
                 })
             }
         }

@@ -104,6 +104,59 @@ impl Node {
 
 /* --- Behaviours --- */
 
+/* WatchVar */
+pub struct WatchVarBehaviour {
+    var_name: String,
+    listener_id: i32,
+}
+
+impl WatchVarBehaviour {
+    pub fn new() -> WatchVarBehaviour {
+        WatchVarBehaviour {
+            var_name: String::from(""),
+            listener_id: -1,
+        }
+    }
+}
+
+impl Behaviour for WatchVarBehaviour {
+    fn is_working(&self) -> bool {
+        false
+    }
+
+    fn run(&mut self, context: BehaviourRunContext) -> () {
+        let var = context.machine_vars.get_mut(&self.var_name).unwrap();
+
+        if self.listener_id == -1 {
+            self.listener_id = var.register_listener();
+            var.activate_listener(self.listener_id);
+        }
+
+        let polled = var.poll(self.listener_id);
+
+        match polled {
+            NodeData::Nil => {}
+            _ => {
+                context.out_buf.push(polled);
+            }
+        };
+    }
+
+    fn reset(&mut self) -> () {}
+
+    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+        self.listener_id = -1;
+
+        match args.remove("var") {
+            Some(NodeParam::String(var)) => self.var_name = var,
+            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
+            None => Err(ErrorCode::ArgumentRequired)?,
+        };
+
+        Ok(())
+    }
+}
+
 /* SetVar */
 pub struct SetVarBehaviour {
     var_name: String,
@@ -212,8 +265,10 @@ pub struct LiteralBehaviour {
 }
 
 impl LiteralBehaviour {
-    pub fn new(data: NodeData) -> LiteralBehaviour {
-        LiteralBehaviour { value: data }
+    pub fn new() -> LiteralBehaviour {
+        LiteralBehaviour {
+            value: NodeData::Nil,
+        }
     }
 }
 
@@ -223,14 +278,22 @@ impl Behaviour for LiteralBehaviour {
     }
 
     fn run(&mut self, context: BehaviourRunContext) -> () {
-        context.out_buf.push(self.value);
+        match context.in_buf.pop() {
+            NodeData::Nil => {}
+            _ => context.out_buf.push(self.value),
+        };
     }
 
     fn reset(&mut self) -> () {}
 
     fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
-        //TODO: Implement this
-        return Ok(());
+        match args.remove("value") {
+            Some(NodeParam::Base(value)) => self.value = value,
+            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
+            None => Err(ErrorCode::ArgumentRequired)?,
+        };
+
+        Ok(())
     }
 }
 

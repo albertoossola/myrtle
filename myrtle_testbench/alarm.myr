@@ -1,0 +1,32 @@
+device {
+    i2c: hw::io::i2c(sda: 4, scl: 5);
+    rtc: hw::rtc::ds1307(bus: @i2c);
+    lcd: hw::lcd::ht16k33(bus: @i2c);
+    spk: hw::pwm(pin: 8, freq: 440);
+    btn: hw::gpio::in(pin: 6, pull: 0);
+}
+
+machine main {
+    state entry { 
+        $ >> setstate("time");
+    }
+
+    state 
+
+    state foobar {
+        timer(ms=1000);
+    }
+}
+
+machine time {
+    @rtc_addr = 0x34;
+
+    state time {
+        timer(ms=1000) >> #update_time;
+
+        onset(#update_time) >> send([@rtc_addr, 0x01, \read]) >> @i2c >> #minutes_bcd;
+        onset(#update_time) >> send([@rtc_addr, 0x02, \read]) >> @i2c >> #hours_bcd;
+
+        (#hours_bcd | #minutes_bcd) >> (#hours_bcd << 16 + #minutes_bcd) >> setval(@lcd);
+    }
+}

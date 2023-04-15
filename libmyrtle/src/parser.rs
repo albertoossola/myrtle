@@ -1,9 +1,6 @@
 use alloc::{
-    boxed::Box,
     collections::BTreeMap,
     string::{String, ToString},
-    vec,
-    vec::Vec,
 };
 use nom::{
     bytes::complete::{is_not, tag},
@@ -16,9 +13,8 @@ use nom::{
 };
 
 use crate::{
-    ast::{FlowAST, MachineAST, NodeAST, StateAST},
-    nodedata, Behaviour, EmitBehaviour, ErrorCode, Machine, Node, NodeBuffer, NodeData, NodeParam,
-    SetVarBehaviour, State, TimerBehaviour,
+    ast::{DeviceAST, EndpointAST, FlowAST, MachineAST, NodeAST, ProgramAST, StateAST},
+    NodeData, NodeParam,
 };
 
 fn ws<'a, F, O, E: ParseError<&'a str>>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
@@ -33,7 +29,7 @@ fn parse_int(i: &str) -> IResult<&str, NodeData> {
 }
 
 fn parse_char(i: &str) -> IResult<&str, NodeData> {
-    return map(anychar, |c| NodeData::Char('c'))(i);
+    return map(anychar, |c| NodeData::Char(c))(i);
 }
 
 fn parse_bool(i: &str) -> IResult<&str, NodeData> {
@@ -128,4 +124,51 @@ pub fn parse_machine(i: &str) -> IResult<&str, MachineAST> {
             states: states,
         },
     ));
+}
+
+pub fn parse_endpoint(i: &str) -> IResult<&str, (String, EndpointAST)> {
+    let (i, varname) = ws(alphanumeric1)(i)?;
+    let (i, _) = ws(tag("="))(i)?;
+    let (i, kind) = ws(alphanumeric1)(i)?;
+    let (i, _) = ws(tag("("))(i)?;
+    let (i, args) = separated_list0(ws(tag(",")), parse_arg)(i)
+        .map(|(i, args)| (i, BTreeMap::from_iter(args.into_iter())))?;
+
+    let (i, _) = ws(tag(")"))(i)?;
+    let (i, _) = ws(tag(";"))(i)?;
+
+    return Ok((
+        i,
+        (
+            String::from(varname),
+            EndpointAST {
+                kind: String::from(kind),
+                args: args,
+            },
+        ),
+    ));
+}
+
+pub fn parse_device(i: &str) -> IResult<&str, DeviceAST> {
+    let (i, _) = ws(tag("device"))(i)?;
+    let (i, _) = ws(tag("{"))(i)?;
+    let (i, endpoints) = many0(parse_endpoint)(i)?;
+    let (i, _) = ws(tag("}"))(i)?;
+
+    return Ok((
+        i,
+        DeviceAST {
+            endpoints: BTreeMap::from_iter(endpoints.into_iter()),
+        },
+    ));
+}
+
+pub fn parse_program(i: &str) -> IResult<&str, ProgramAST> {
+    //Parse the device configuration
+    let (i, device) = parse_device(i)?;
+
+    //Parse the machine(s)
+    let (i, machine) = parse_machine(i)?;
+
+    Ok((i, ProgramAST { device, machine }))
 }
