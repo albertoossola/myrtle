@@ -22,6 +22,10 @@ impl HWAdapter for TestHal {
     }
 
     fn get_ms_time(&self) -> u64 {
+        self.get_ms_time() / 1000
+    }
+
+    fn get_us_time(&self) -> u64 {
         todo!()
     }
 }
@@ -68,12 +72,14 @@ impl DataSource for DigitalInput {
     fn poll(&mut self) -> libmyrtle::NodeData {
         let mut line = String::new();
 
-        _ = stdin().lock().read_line(&mut line).map(|_| {
+        //TODO: Read the value from somewhere
+
+        /*_ = stdin().lock().read_line(&mut line).map(|_| {
             let parsed_pin = str::parse::<i32>(line.trim()).unwrap();
             if parsed_pin == self.pin_num {
                 self.cur_state = 1 - self.cur_state;
             }
-        });
+        });*/
 
         return NodeData::Int(self.cur_state);
     }

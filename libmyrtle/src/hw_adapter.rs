@@ -9,4 +9,5 @@ pub trait HWAdapter {
     fn set_input_pin(&mut self, pin_num: i32) -> Box<dyn DataSource>;
 
     fn get_ms_time(&self) -> u64;
+    fn get_us_time(&self) -> u64;
 }

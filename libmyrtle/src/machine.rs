@@ -1,4 +1,8 @@
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use crate::{
     node::{Node, NodeRunContext},
@@ -50,5 +54,22 @@ impl Machine {
             machine_vars: &mut self.variables,
             current_ticks: context.current_ticks,
         });
+    }
+
+    pub fn make_blank() -> Machine {
+        let mut states = BTreeMap::new();
+        states.insert(
+            "entry".to_string(),
+            State {
+                vars: BTreeMap::new(),
+                flows: alloc::vec![],
+            },
+        );
+
+        Machine {
+            cur_state: String::from("entry"),
+            states,
+            variables: BTreeMap::new(),
+        }
     }
 }

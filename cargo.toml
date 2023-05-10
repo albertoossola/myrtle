@@ -1,7 +1,9 @@
 [workspace]
 
 members = [
-    "libmyrtle",
+    "liblink",
     "myrtle_testbench",
+    "libmyrtle",
     "myrtle_rp2040",
+    "myrtle-cli"
 ]

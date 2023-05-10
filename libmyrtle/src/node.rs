@@ -1,6 +1,6 @@
 /* Buffer */
 
-use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, NodeParam};
+use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, MemoryDataSource, NodeParam};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::slice::Iter;
 
@@ -125,6 +125,13 @@ impl Behaviour for WatchVarBehaviour {
     }
 
     fn run(&mut self, context: BehaviourRunContext) -> () {
+        if !context.machine_vars.contains_key(&self.var_name) {
+            context.machine_vars.insert(
+                self.var_name.clone(),
+                Symbol::new(Box::new(MemoryDataSource::new())),
+            );
+        }
+
         let var = context.machine_vars.get_mut(&self.var_name).unwrap();
 
         if self.listener_id == -1 {

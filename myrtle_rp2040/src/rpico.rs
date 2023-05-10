@@ -80,8 +80,12 @@ impl HWAdapter for RPicoAdapter {
         todo!()
     }
 
+    fn get_us_time(&self) -> u64 {
+        self.timer.get_counter().ticks()
+    }
+
     fn get_ms_time(&self) -> u64 {
-        self.timer.get_counter().ticks() / 1000
+        self.get_us_time() / 1000
     }
 }
 

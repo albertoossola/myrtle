@@ -1,0 +1,11 @@
+device {
+    btn = in(pin=5);
+    led = out(pin=8);
+}
+
+machine main {
+    state entry {
+	timer(ms=500) >> literal(value=1) >> setvar(var="x");
+        watchvar(var="x") >> emit(items=[0, 1]) >> setvar(var="led");
+    }
+}

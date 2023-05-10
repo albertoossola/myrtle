@@ -11,6 +11,36 @@ pub trait DataSource {
     fn push(&mut self, data: NodeData) -> ();
 }
 
+/* Variables in memory */
+
+pub struct MemoryDataSource {
+    value: NodeData,
+}
+
+impl MemoryDataSource {
+    pub fn new() -> MemoryDataSource {
+        MemoryDataSource {
+            value: NodeData::Nil,
+        }
+    }
+}
+
+impl DataSource for MemoryDataSource {
+    fn poll(&mut self) -> NodeData {
+        let to_return = self.value;
+        self.value = NodeData::Nil;
+        return to_return;
+    }
+
+    fn can_push(&self) -> bool {
+        true
+    }
+
+    fn push(&mut self, data: NodeData) -> () {
+        self.value = data
+    }
+}
+
 /* Symbols */
 
 struct SymbolListenerStatus {
