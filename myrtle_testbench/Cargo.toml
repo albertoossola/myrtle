@@ -9,3 +9,5 @@ edition = "2021"
 libmyrtle = { path = "../libmyrtle" }
 liblink = { path = "../liblink" }
 ringbuffer = "0.13.0"
+egui = "0.21.0"
+eframe = "0.21.3"

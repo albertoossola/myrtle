@@ -1,8 +1,35 @@
-use std::io::{stdin, BufRead};
+use std::{
+    cell::RefCell,
+    collections::BTreeMap,
+    io::{stdin, BufRead},
+    rc::Rc,
+};
 
 use libmyrtle::{DataSource, HWAdapter, NodeData};
 
-pub struct TestHal {}
+pub struct HWState {
+    pub pins: BTreeMap<i32, i32>,
+}
+
+impl HWState {
+    pub fn new() -> HWState {
+        HWState {
+            pins: BTreeMap::new(),
+        }
+    }
+}
+
+pub struct TestHal {
+    pub hw_state: Rc<RefCell<HWState>>,
+}
+
+impl TestHal {
+    pub fn new() -> TestHal {
+        TestHal {
+            hw_state: Rc::new(RefCell::new(HWState::new())),
+        }
+    }
+}
 
 impl HWAdapter for TestHal {
     fn init(&mut self) -> () {}
@@ -11,6 +38,7 @@ impl HWAdapter for TestHal {
         return Box::new(PushPull {
             cur_state: 0,
             pin_num,
+            state: self.hw_state.clone(),
         });
     }
 
@@ -35,6 +63,7 @@ impl HWAdapter for TestHal {
 struct PushPull {
     cur_state: i32,
     pin_num: i32,
+    state: Rc<RefCell<HWState>>,
 }
 
 impl DataSource for PushPull {
@@ -56,6 +85,9 @@ impl DataSource for PushPull {
         }
 
         if last_state != self.cur_state {
+            let mut borrow = self.state.borrow_mut();
+            borrow.pins.insert(self.pin_num, self.cur_state);
+
             println!("hal: pin {} set to {}", self.pin_num, self.cur_state);
         }
     }
