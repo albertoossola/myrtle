@@ -1,15 +1,20 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 
-#[derive(Clone, Copy, Debug)]
+use crate::seq::Seq;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum NodeData {
     Int(i32),
     Bool(bool),
     Char(char),
+    Start,
+    End,
+    Err,
     Nil,
 }
 
 pub enum NodeParam {
     Base(NodeData),
     String(String),
-    Seq(Vec<NodeData>),
+    Seq(Box<dyn Seq>),
 }

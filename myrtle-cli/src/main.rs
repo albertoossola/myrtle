@@ -5,8 +5,7 @@ use liblink::{Buffer, RTx};
 use std::{
     fs,
     io::{self, Read, Write},
-    net::{Ipv4Addr, SocketAddr, UdpSocket},
-    process,
+    net::{SocketAddr, UdpSocket},
     str::FromStr,
     thread::sleep,
     time::Duration,
@@ -55,7 +54,7 @@ fn send_and_wait(
 
 fn send_file(file: &mut fs::File, addr: SocketAddr) -> io::Result<()> {
     let mut sock = std::net::UdpSocket::bind("0.0.0.0:0")?;
-    sock.set_nonblocking(true);
+    sock.set_nonblocking(true).ok();
 
     println!("Socket bound to {}", sock.local_addr().unwrap());
 

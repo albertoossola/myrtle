@@ -1,11 +1,13 @@
 device {
-    btn = in(pin=5);
-    led = out(pin=8);
+    btn = in(pin=6);
+    led = out(pin=26);
 }
 
 machine main {
     state entry {
-	timer(ms=500) >> literal(value=1) >> setvar(var="x");
-        watchvar(var="x") >> emit(items=[0, 1]) >> setvar(var="led");
+        watchvar(var="btn") 
+		>> debounce(period=50) 
+		>> emit(items=[0, 0, 1, 1]) 
+		>> setvar(var="led");
     }
 }

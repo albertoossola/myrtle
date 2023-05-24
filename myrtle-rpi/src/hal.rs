@@ -5,28 +5,17 @@ use std::{
     rc::Rc,
 };
 
+use rppal::gpio::{Gpio, OutputPin, Pin, InputPin, Level};
 use libmyrtle::{DataSource, HWAdapter, NodeData};
 
-pub struct HWState {
-    pub pins: BTreeMap<i32, i32>,
-}
-
-impl HWState {
-    pub fn new() -> HWState {
-        HWState {
-            pins: BTreeMap::new(),
-        }
-    }
-}
-
 pub struct TestHal {
-    pub hw_state: Rc<RefCell<HWState>>,
+    pub gpio : Gpio
 }
 
 impl TestHal {
     pub fn new() -> TestHal {
         TestHal {
-            hw_state: Rc::new(RefCell::new(HWState::new())),
+            gpio: Gpio::new().unwrap()
         }
     }
 }
@@ -35,22 +24,22 @@ impl HWAdapter for TestHal {
     fn init(&mut self) -> () {}
 
     fn set_push_pull_pin(&mut self, pin_num: i32) -> Box<dyn libmyrtle::DataSource> {
+
         return Box::new(PushPull {
             cur_state: 0,
-            pin_num,
-            state: self.hw_state.clone(),
+            pin: self.gpio.get(pin_num as u8).unwrap().into_output()
         });
     }
 
     fn set_input_pin(&mut self, pin_num: i32) -> Box<dyn libmyrtle::DataSource> {
         return Box::new(DigitalInput {
-            cur_state: 0,
-            pin_num,
+            cur_state: Level::High,
+            pin: self.gpio.get(pin_num as u8).unwrap().into_input_pullup(),
         });
     }
 
     fn get_ms_time(&self) -> u64 {
-        self.get_ms_time() / 1000
+        self.get_us_time() / 1000
     }
 
     fn get_us_time(&self) -> u64 {
@@ -62,8 +51,7 @@ impl HWAdapter for TestHal {
 
 struct PushPull {
     cur_state: i32,
-    pin_num: i32,
-    state: Rc<RefCell<HWState>>,
+    pin: OutputPin
 }
 
 impl DataSource for PushPull {
@@ -85,35 +73,44 @@ impl DataSource for PushPull {
         }
 
         if last_state != self.cur_state {
-            let mut borrow = self.state.borrow_mut();
-            borrow.pins.insert(self.pin_num, self.cur_state);
+            match self.cur_state {
+                0 => self.pin.set_low(),
+                _ => self.pin.set_high()
+            }
 
-            println!("hal: pin {} set to {}", self.pin_num, self.cur_state);
+            //println!("hal: pin {} set to {}", self.pin.pin(), self.cur_state);
         }
     }
+
+    fn can_open(&self) -> bool {
+        true
+    }
+
+    fn open(&mut self) -> () {}
+
+    fn close(&mut self) -> () {}
 }
 
 // Digital Input
 
 struct DigitalInput {
-    cur_state: i32,
-    pin_num: i32,
+    cur_state: Level,
+    pin: InputPin,
 }
 
 impl DataSource for DigitalInput {
-    fn poll(&mut self) -> libmyrtle::NodeData {
-        let mut line = String::new();
-
-        //TODO: Read the value from somewhere
-
-        /*_ = stdin().lock().read_line(&mut line).map(|_| {
-            let parsed_pin = str::parse::<i32>(line.trim()).unwrap();
-            if parsed_pin == self.pin_num {
-                self.cur_state = 1 - self.cur_state;
-            }
-        });*/
-
-        return NodeData::Int(self.cur_state);
+    fn poll(&mut self) -> NodeData {
+        match self.pin.read() {
+            Level::Low if self.cur_state == Level::High => {
+                self.cur_state = Level::Low;
+                NodeData::Int(0)
+            },
+            Level::High if self.cur_state == Level::Low => {
+                self.cur_state = Level::High;
+                NodeData::Int(1)
+            },
+            _ => NodeData::Nil
+        }
     }
 
     fn can_push(&self) -> bool {
@@ -121,4 +118,12 @@ impl DataSource for DigitalInput {
     }
 
     fn push(&mut self, data: libmyrtle::NodeData) -> () {}
+
+    fn can_open(&self) -> bool {
+        true
+    }
+
+    fn open(&mut self) -> () {}
+
+    fn close(&mut self) -> () {}
 }

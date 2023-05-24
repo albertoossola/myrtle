@@ -1,5 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec, vec::Vec};
 
+use crate::nodes::*;
+use crate::seq::{ConstSeq, RepeatSeq, Seq};
 use crate::{ast::*, *};
 
 pub fn make_program(
@@ -67,17 +69,42 @@ fn make_flow(ast: &mut FlowAST) -> Result<Box<Node>, ErrorCode> {
     return Ok(n.unwrap());
 }
 
+fn make_seq(ast: &SeqAST) -> Box<dyn Seq> {
+    return match ast {
+        SeqAST::Const(value) => Box::new(ConstSeq::new(*value)),
+        SeqAST::Repeat(times, inner_asts) => {
+            let inner_seqs = inner_asts.iter().map(|s| make_seq(s)).collect();
+            Box::new(RepeatSeq::new(*times, inner_seqs))
+        }
+    };
+}
+
+fn make_param(ast: &NodeParamAST) -> NodeParam {
+    match ast {
+        NodeParamAST::Base(data) => NodeParam::Base(*data),
+        NodeParamAST::String(str) => NodeParam::String(str.clone()),
+        NodeParamAST::Seq(seq_ast) => NodeParam::Seq(make_seq(&seq_ast)),
+    }
+}
+
 fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     let mut behaviour: Box<dyn Behaviour> = match ast.kind.as_str() {
         "timer" => Box::new(TimerBehaviour::new(500)),
-        "emit" => Box::new(EmitBehaviour::new(vec![])),
+        "emit" => Box::new(EmitBehaviour::new(Box::new(RepeatSeq::new(0, vec![])))),
         "literal" => Box::new(LiteralBehaviour::new()),
         "setvar" => Box::new(SetVarBehaviour::new(String::from(""))),
+        "debounce" => Box::new(DebounceBehaviour::new()),
         "watchvar" => Box::new(WatchVarBehaviour::new()),
         _ => Err(ErrorCode::UnknownNodeKind)?,
     };
 
-    behaviour.init(&mut ast.args)?;
+    let mut args = ast
+        .args
+        .iter()
+        .map(|(k, v)| (k.clone(), make_param(&v)))
+        .collect();
+
+    behaviour.init(&mut args)?;
 
     let node = Node {
         behaviour,
@@ -91,9 +118,15 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
 }
 
 fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<Symbol, ErrorCode> {
+    let mut args: BTreeMap<String, NodeParam> = ast
+        .args
+        .iter()
+        .map(|(k, v)| (k.clone(), make_param(&v)))
+        .collect();
+
     match ast.kind.as_str() {
         "out" => {
-            let led_num = ast.args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
+            let led_num = args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
 
             match led_num {
                 NodeParam::Base(crate::NodeData::Int(num)) => {
@@ -103,7 +136,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
             }
         }
         "in" => {
-            let led_num = ast.args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
+            let led_num = args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
 
             match led_num {
                 NodeParam::Base(crate::NodeData::Int(num)) => {

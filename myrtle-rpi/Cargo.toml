@@ -1,5 +1,5 @@
 [package]
-name = "myrtle_testbench"
+name = "myrtle-rpi"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,5 +9,4 @@ edition = "2021"
 libmyrtle = { path = "../libmyrtle" }
 liblink = { path = "../liblink" }
 ringbuffer = "0.13.0"
-egui = "0.21.0"
-eframe = "0.21.3"
+rppal = "0.14.1"

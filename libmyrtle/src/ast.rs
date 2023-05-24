@@ -1,6 +1,6 @@
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
-use crate::NodeParam;
+use crate::{NodeData, NodeParam};
 
 pub struct ProgramAST {
     pub device: DeviceAST,
@@ -25,14 +25,25 @@ pub struct FlowAST {
     pub nodes: Vec<NodeAST>,
 }
 
+pub enum SeqAST {
+    Const(NodeData),
+    Repeat(i32, Vec<SeqAST>),
+}
+
+pub enum NodeParamAST {
+    Base(NodeData),
+    String(String),
+    Seq(SeqAST),
+}
+
 pub struct NodeAST {
     pub kind: String,
-    pub args: BTreeMap<String, NodeParam>,
+    pub args: BTreeMap<String, NodeParamAST>,
 }
 
 //HW interface AST
 
 pub struct EndpointAST {
     pub kind: String,
-    pub args: BTreeMap<String, NodeParam>,
+    pub args: BTreeMap<String, NodeParamAST>,
 }

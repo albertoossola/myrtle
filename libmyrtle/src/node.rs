@@ -2,7 +2,6 @@
 
 use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, MemoryDataSource, NodeParam};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
-use core::slice::Iter;
 
 pub struct NodeBuffer {
     pub data: NodeData,
@@ -29,6 +28,10 @@ impl NodeBuffer {
         let cur_data = self.data;
         self.data = NodeData::Nil;
         return cur_data;
+    }
+
+    pub fn peek(&self) -> NodeData {
+        self.data
     }
 }
 
@@ -158,107 +161,6 @@ impl Behaviour for WatchVarBehaviour {
             Some(NodeParam::String(var)) => self.var_name = var,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,
             None => Err(ErrorCode::ArgumentRequired)?,
-        };
-
-        Ok(())
-    }
-}
-
-/* SetVar */
-pub struct SetVarBehaviour {
-    var_name: String,
-    value_to_set: NodeData,
-}
-
-impl SetVarBehaviour {
-    pub fn new(var_name: String) -> SetVarBehaviour {
-        SetVarBehaviour {
-            var_name,
-            value_to_set: NodeData::Nil,
-        }
-    }
-}
-
-impl Behaviour for SetVarBehaviour {
-    fn is_working(&self) -> bool {
-        match self.value_to_set {
-            NodeData::Nil => false,
-            _ => true,
-        }
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        if !self.is_working() {
-            self.value_to_set = context.in_buf.pop();
-        }
-
-        let var = context
-            .machine_vars
-            .get_mut(self.var_name.as_str())
-            .unwrap();
-
-        if var.can_push() {
-            var.push(self.value_to_set);
-            self.value_to_set = NodeData::Nil;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        todo!()
-    }
-
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
-        match args.remove("var") {
-            Some(NodeParam::String(var)) => self.var_name = var,
-            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
-            None => Err(ErrorCode::ArgumentRequired)?,
-        };
-
-        Ok(())
-    }
-}
-
-/* Emit */
-
-pub struct EmitBehaviour {
-    values: Vec<NodeData>,
-    cur: usize,
-}
-
-impl EmitBehaviour {
-    pub fn new(values: Vec<NodeData>) -> EmitBehaviour {
-        EmitBehaviour { values, cur: 0 }
-    }
-}
-
-impl Behaviour for EmitBehaviour {
-    fn is_working(&self) -> bool {
-        false
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        /* Pop the in buffer */
-        context.in_buf.pop();
-
-        let current_value = self.values[self.cur];
-
-        context.out_buf.push(current_value);
-
-        self.cur += 1;
-        if self.cur >= self.values.len() {
-            self.cur = 0;
-        }
-    }
-
-    fn reset(&mut self) -> () {
-        self.cur = 0;
-    }
-
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
-        match args.remove("items") {
-            Some(NodeParam::Seq(items)) => self.values = items,
-            None => Err(ErrorCode::ArgumentRequired)?,
-            _ => Err(ErrorCode::InvalidArgumentType)?,
         };
 
         Ok(())

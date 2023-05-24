@@ -1,0 +1,7 @@
+[build]
+target="x86_64-linux-gnu"
+
+[target.arm-unknown-linux-gnueabi]
+rustflags = ["-C", "target-feature=+crt-static"]
+linker = "arm-linux-gnueabi-gcc"
+ar = "arm-linux-gnueabi-ar"

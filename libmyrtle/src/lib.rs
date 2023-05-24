@@ -9,7 +9,9 @@ mod hw_adapter;
 mod machine;
 mod node;
 mod nodedata;
+mod nodes;
 mod parser;
+mod seq;
 mod symbols;
 
 pub use converter::*;

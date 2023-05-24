@@ -1,11 +1,12 @@
 use alloc::{
+    boxed::Box,
     collections::BTreeMap,
     string::{String, ToString},
 };
 use nom::{
     bytes::complete::{is_not, tag},
-    character::complete::{alphanumeric1, anychar, i32, multispace0},
-    combinator::map,
+    character::complete::{alphanumeric1, anychar, i32 as parsei32, multispace0},
+    combinator::{map, opt},
     error::ParseError,
     multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, separated_pair},
@@ -13,7 +14,11 @@ use nom::{
 };
 
 use crate::{
-    ast::{DeviceAST, EndpointAST, FlowAST, MachineAST, NodeAST, ProgramAST, StateAST},
+    ast::{
+        DeviceAST, EndpointAST, FlowAST, MachineAST, NodeAST, NodeParamAST, ProgramAST, SeqAST,
+        StateAST,
+    },
+    seq::{ConstSeq, RepeatSeq, Seq},
     NodeData, NodeParam,
 };
 
@@ -25,11 +30,15 @@ where
 }
 
 fn parse_int(i: &str) -> IResult<&str, NodeData> {
-    return map(i32, |n| NodeData::Int(n))(i);
+    return map(parsei32, |n| NodeData::Int(n))(i);
 }
 
 fn parse_char(i: &str) -> IResult<&str, NodeData> {
-    return map(anychar, |c| NodeData::Char(c))(i);
+    return delimited(
+        tag("'"),
+        map(anychar, |c| NodeData::Char(c)),
+        tag("'")
+    )(i);
 }
 
 fn parse_bool(i: &str) -> IResult<&str, NodeData> {
@@ -42,28 +51,50 @@ fn parse_primitive(i: &str) -> IResult<&str, NodeData> {
     return parse_int.or(parse_char).or(parse_bool).parse(i);
 }
 
-fn parse_seq(i: &str) -> IResult<&str, NodeParam> {
+fn parse_const_seq(i: &str) -> IResult<&str, SeqAST> {
+    let (i, value) = parse_primitive(i)?;
+    return Ok((i, SeqAST::Const(value)));
+}
+
+fn parse_repeat_seq_count(i: &str) -> IResult<&str, i32> {
+    let (i, times) = ws(parsei32)(i)?;
+    let (i, _) = ws(tag("*"))(i)?;
+
+    return Ok((i, times));
+}
+
+fn parse_repeat_seq(i: &str) -> IResult<&str, SeqAST> {
+    let (i, times) = opt(parse_repeat_seq_count)
+        .map(|o| o.unwrap_or(1))
+        .parse(i)?;
+
     let (i, _) = ws(tag("["))(i)?;
-    let (i, items) = separated_list0(ws(tag(",")), parse_primitive)(i)?;
+    let (i, items) = separated_list0(ws(tag(",")), parse_seq)(i)?;
     let (i, _) = ws(tag("]"))(i)?;
 
-    return Ok((i, NodeParam::Seq(items)));
+    return Ok((i, SeqAST::Repeat(times, items)));
 }
 
-fn parse_string(i: &str) -> IResult<&str, NodeParam> {
+fn parse_seq(i: &str) -> IResult<&str, SeqAST> {
+    return parse_repeat_seq.or(parse_const_seq).parse(i);
+}
+
+fn parse_string(i: &str) -> IResult<&str, NodeParamAST> {
     let (i, content) = ws(delimited(tag("\""), is_not("\""), tag("\"")))(i)?;
-
-    Ok((i, NodeParam::String(content.to_string())))
+    Ok((
+        i,
+        NodeParamAST::String(content.to_string()),
+    ))
 }
 
-fn parse_arg_value(i: &str) -> IResult<&str, NodeParam> {
-    return parse_seq
-        .or(parse_string)
-        .or(parse_primitive.map(|p| NodeParam::Base(p)))
+fn parse_arg_value(i: &str) -> IResult<&str, NodeParamAST> {
+    return parse_string
+        .or(parse_primitive.map(|p| NodeParamAST::Base(p)))
+        .or((parse_seq.map(|s| NodeParamAST::Seq(s))))
         .parse(i);
 }
 
-fn parse_arg(i: &str) -> IResult<&str, (String, NodeParam)> {
+fn parse_arg(i: &str) -> IResult<&str, (String, NodeParamAST)> {
     let (i, (param, value)) =
         separated_pair(ws(alphanumeric1), ws(tag("=")), ws(parse_arg_value))(i)?;
 

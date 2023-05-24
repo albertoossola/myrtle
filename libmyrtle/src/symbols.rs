@@ -9,6 +9,10 @@ pub trait DataSource {
     fn poll(&mut self) -> NodeData;
     fn can_push(&self) -> bool;
     fn push(&mut self, data: NodeData) -> ();
+
+    fn can_open(&self) -> bool;
+    fn open(&mut self) -> ();
+    fn close(&mut self) -> ();
 }
 
 /* Variables in memory */
@@ -39,6 +43,14 @@ impl DataSource for MemoryDataSource {
     fn push(&mut self, data: NodeData) -> () {
         self.value = data
     }
+
+    fn open(&mut self) -> () {}
+
+    fn close(&mut self) -> () {}
+
+    fn can_open(&self) -> bool {
+        true
+    }
 }
 
 /* Symbols */
@@ -52,6 +64,7 @@ pub struct Symbol {
     pub source: Box<dyn DataSource>,
     listeners: Vec<SymbolListenerStatus>,
     polled_data: NodeData,
+    open: bool,
 }
 
 impl Symbol {
@@ -60,6 +73,7 @@ impl Symbol {
             source: source,
             listeners: vec![],
             polled_data: NodeData::Nil,
+            open: false,
         }
     }
 
@@ -116,6 +130,10 @@ impl Symbol {
     }
 
     pub fn can_push(&mut self) -> bool {
+        if !self.is_open() {
+            return false;
+        }
+
         let all_listeners_up_to_date = self
             .listeners
             .iter()
@@ -127,5 +145,21 @@ impl Symbol {
 
     pub fn push(&mut self, data: NodeData) -> () {
         self.source.push(data);
+    }
+
+    pub fn open(&mut self) -> () {
+        self.open = true;
+    }
+
+    pub fn can_open(&self) -> bool {
+        self.source.can_open() && !self.open
+    }
+
+    pub fn close(&mut self) -> () {
+        self.open = false;
+    }
+
+    pub fn is_open(&self) -> bool {
+        self.open
     }
 }

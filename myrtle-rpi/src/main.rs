@@ -11,8 +11,9 @@ use std::{
     net::{SocketAddr, TcpListener, TcpStream, UdpSocket},
     time::{SystemTime, UNIX_EPOCH},
 };
+use std::thread::sleep;
+use std::time::Duration;
 
-use eframe::App;
 use liblink::*;
 use libmyrtle::*;
 
@@ -22,8 +23,8 @@ use ringbuffer::{
     ConstGenericRingBuffer, RingBuffer, RingBufferExt, RingBufferRead, RingBufferWrite,
 };
 
-mod gui;
-use gui::GUI;
+mod app;
+use app::App;
 
 fn main() {
     println!("Myrtle Testbench - v0.1.0");
@@ -31,12 +32,9 @@ fn main() {
     println!("Initializing...");
 
     //Start gui
-    let gui: Box<dyn App> = Box::new(GUI::default());
+    let mut app = App::default();
 
-    let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::Vec2 { x: 400.0, y: 400.0 }),
-        ..eframe::NativeOptions::default()
-    };
-
-    eframe::run_native("Myrtle Testbench", native_options, Box::new(|cc| gui));
+    loop {
+        app.update();
+    }
 }

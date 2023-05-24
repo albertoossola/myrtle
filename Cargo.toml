@@ -2,8 +2,9 @@
 
 members = [
     "liblink",
-    "myrtle_testbench",
+    "myrtle-rpi",
     "libmyrtle",
-    "myrtle_rp2040",
     "myrtle-cli"
 ]
+
+default-members = ["myrtle-rpi"]
