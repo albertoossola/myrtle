@@ -5,18 +5,13 @@ use std::{
     rc::Rc,
 };
 
-use rppal::gpio::{Gpio, OutputPin, Pin, InputPin, Level};
 use libmyrtle::{DataSource, HWAdapter, NodeData};
 
-pub struct TestHal {
-    pub gpio : Gpio
-}
+pub struct TestHal { }
 
 impl TestHal {
     pub fn new() -> TestHal {
-        TestHal {
-            gpio: Gpio::new().unwrap()
-        }
+        TestHal { }
     }
 }
 
@@ -24,18 +19,11 @@ impl HWAdapter for TestHal {
     fn init(&mut self) -> () {}
 
     fn set_push_pull_pin(&mut self, pin_num: i32) -> Box<dyn libmyrtle::DataSource> {
-
-        return Box::new(PushPull {
-            cur_state: 0,
-            pin: self.gpio.get(pin_num as u8).unwrap().into_output()
-        });
+        return Box::new(PushPull::new(pin_num));
     }
 
     fn set_input_pin(&mut self, pin_num: i32) -> Box<dyn libmyrtle::DataSource> {
-        return Box::new(DigitalInput {
-            cur_state: Level::High,
-            pin: self.gpio.get(pin_num as u8).unwrap().into_input_pullup(),
-        });
+        return Box::new(DigitalInput::new(pin_num));
     }
 
     fn get_ms_time(&self) -> u64 {
@@ -51,7 +39,22 @@ impl HWAdapter for TestHal {
 
 struct PushPull {
     cur_state: i32,
-    pin: OutputPin
+    pin: i32
+}
+
+impl PushPull {
+    fn new(pin : i32) -> PushPull {
+        std::fs::write("/sys/class/gpio/export", pin.to_string()).unwrap_or(());
+        std::fs::write(
+            format!("/sys/class/gpio/gpio{}/direction", pin),
+            "out"
+        ).unwrap();
+
+        PushPull {
+            cur_state: 0,
+            pin,
+        }
+    }
 }
 
 impl DataSource for PushPull {
@@ -73,12 +76,10 @@ impl DataSource for PushPull {
         }
 
         if last_state != self.cur_state {
-            match self.cur_state {
-                0 => self.pin.set_low(),
-                _ => self.pin.set_high()
-            }
-
-            //println!("hal: pin {} set to {}", self.pin.pin(), self.cur_state);
+            std::fs::write(
+                format!("/sys/class/gpio/gpio{}/value", self.pin),
+                match self.cur_state {0 => "0", _ => "1"}
+            ).unwrap();
         }
     }
 
@@ -86,7 +87,8 @@ impl DataSource for PushPull {
         true
     }
 
-    fn open(&mut self) -> () {}
+    fn open(&mut self) -> () {
+    }
 
     fn close(&mut self) -> () {}
 }
@@ -94,19 +96,42 @@ impl DataSource for PushPull {
 // Digital Input
 
 struct DigitalInput {
-    cur_state: Level,
-    pin: InputPin,
+    cur_state: i32,
+    pin: i32,
+}
+
+impl DigitalInput {
+    pub fn new(pin : i32) -> DigitalInput {
+        std::fs::write("/sys/class/gpio/export", pin.to_string()).unwrap_or(());
+        std::fs::write(
+            format!("/sys/class/gpio/gpio{}/direction", pin),
+            "in"
+        ).unwrap();
+
+        DigitalInput {
+            cur_state: 0,
+            pin
+        }
+    }
 }
 
 impl DataSource for DigitalInput {
     fn poll(&mut self) -> NodeData {
-        match self.pin.read() {
-            Level::Low if self.cur_state == Level::High => {
-                self.cur_state = Level::Low;
+        let value: char = std::fs::read(
+            format!("/sys/class/gpio/gpio{}/value", self.pin),
+        ).ok()
+            .and_then(|vec| vec.first().map(|f| *f as char))
+            .unwrap_or('_');
+
+        return match value {
+            '0' if self.cur_state == 1 => {
+                println!("input: 0");
+                self.cur_state = 0;
                 NodeData::Int(0)
             },
-            Level::High if self.cur_state == Level::Low => {
-                self.cur_state = Level::High;
+            '1' if self.cur_state == 0 => {
+                println!("input: 1");
+                self.cur_state = 1;
                 NodeData::Int(1)
             },
             _ => NodeData::Nil
