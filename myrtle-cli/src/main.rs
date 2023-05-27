@@ -36,7 +36,7 @@ fn send_and_wait(
     io::stdout().flush().ok();
 
     while !rtx.is_free() {
-        rtx.update(tx_buf, rx_buf, &mut [0; 32]);
+        rtx.update(tx_buf, rx_buf, &mut [0; 64]);
 
         tx_buf.read().map(|frame| socket.send(&[frame]));
 
@@ -48,7 +48,7 @@ fn send_and_wait(
             });
         }
 
-        sleep(Duration::from_micros(200));
+        sleep(Duration::from_micros(1000));
     }
 }
 
@@ -74,7 +74,7 @@ fn send_file(file: &mut fs::File, addr: SocketAddr) -> io::Result<()> {
     send("@@clear".as_bytes());
 
     loop {
-        let mut buf = [0; 32];
+        let mut buf = [0; 64];
         let read_result = file.read(&mut buf);
 
         match read_result {

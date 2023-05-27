@@ -1,6 +1,8 @@
+use crate::flow::{FLOW_FRAME_LEN, FLOW_MAX_DATA};
+
 pub const CRC_RESERVED: u8 = 0x61;
 
-pub const CRC_MAX_DATA: usize = 34;
+pub const CRC_MAX_DATA: usize = FLOW_FRAME_LEN;
 pub const CRC_HEADER_SIZE: usize = 3;
 pub const CRC_OVERHEAD: usize = CRC_HEADER_SIZE + 1;
 pub const CRC_FRAME_LENGTH: usize = CRC_MAX_DATA + CRC_OVERHEAD;

@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec, vec::Vec};
 
 use crate::nodes::*;
-use crate::seq::{ConstSeq, RepeatSeq, Seq};
+use crate::seq::{ConstSeq, DelimitedSeq, RepeatSeq, Seq};
 use crate::{ast::*, *};
 
 pub fn make_program(
@@ -91,10 +91,13 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     let mut behaviour: Box<dyn Behaviour> = match ast.kind.as_str() {
         "timer" => Box::new(TimerBehaviour::new(500)),
         "emit" => Box::new(EmitBehaviour::new(Box::new(RepeatSeq::new(0, vec![])))),
+        "stream" => Box::new(StreamBehaviour::new(Box::new(RepeatSeq::new(0, vec![])))),
         "literal" => Box::new(LiteralBehaviour::new()),
         "setvar" => Box::new(SetVarBehaviour::new(String::from(""))),
+        "delay" => Box::new(DelayBehaviour::new()),
         "debounce" => Box::new(DebounceBehaviour::new()),
         "watchvar" => Box::new(WatchVarBehaviour::new()),
+        "ease" => Box::new(EaseBehaviour::new()),
         _ => Err(ErrorCode::UnknownNodeKind)?,
     };
 
@@ -144,7 +147,17 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
             }
-        }
+        },
+        "pwm" => {
+            let channel = args.remove("channel").ok_or(ErrorCode::ArgumentRequired)?;
+
+            match channel {
+                NodeParam::Base(crate::NodeData::Int(num)) => {
+                    Ok(Symbol::new(adapter.set_pwm_pin(num)))
+                }
+                _ => Err(ErrorCode::InvalidArgumentType),
+            }
+        },
         _ => Err(ErrorCode::UnknownNodeKind),
     }
 }

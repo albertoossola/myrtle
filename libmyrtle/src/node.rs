@@ -43,6 +43,7 @@ pub struct BehaviourRunContext<'a> {
     pub machine_vars: &'a mut BTreeMap<String, Symbol>,
     pub state_vars: &'a mut BTreeMap<String, Symbol>,
     pub current_ticks: u64,
+    pub current_ticks_us: u64,
 }
 
 /* Behaviour */
@@ -60,6 +61,7 @@ pub struct NodeRunContext<'a> {
     pub machine_vars: &'a mut BTreeMap<String, Symbol>,
     pub state_vars: &'a mut BTreeMap<String, Symbol>,
     pub current_ticks: u64,
+    pub current_ticks_us: u64,
 }
 
 pub struct Node {
@@ -93,14 +95,14 @@ impl Node {
                 machine_vars: context.machine_vars,
                 state_vars: context.state_vars,
                 current_ticks: context.current_ticks,
+                current_ticks_us: context.current_ticks_us,
             };
 
             self.behaviour.run(behaviour_context);
-        } else {
-            match self.next.as_mut() {
-                Some(next) => next.run(context),
-                None => {}
-            }
+        }
+        match self.next.as_mut() {
+            Some(next) => next.run(context),
+            None => {}
         }
     }
 }

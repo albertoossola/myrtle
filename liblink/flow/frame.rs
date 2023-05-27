@@ -1,7 +1,7 @@
 pub const DATA_ACK: u8 = 0x01;
 pub const DATA_FRAME: u8 = 0x02;
 
-pub const FLOW_MAX_DATA: usize = 32;
+pub const FLOW_MAX_DATA: usize = 64;
 pub const FLOW_OVERHEAD: usize = 2;
 pub const FLOW_FRAME_LEN: usize = FLOW_MAX_DATA + FLOW_OVERHEAD;
 

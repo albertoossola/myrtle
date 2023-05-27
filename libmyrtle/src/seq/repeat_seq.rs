@@ -49,28 +49,6 @@ impl Seq for RepeatSeq {
         return polled;
     }
 
-    fn push(&mut self, data: crate::NodeData) -> Option<crate::NodeData> {
-        if self.is_done() {
-            return None;
-        }
-
-        let current_seq = &mut self.wrapped[self.index];
-
-        let pushed = current_seq.push(data);
-
-        if current_seq.is_done() {
-            current_seq.reset();
-            self.index += 1;
-        }
-
-        if self.index >= self.wrapped.len() {
-            self.index = 0;
-            self.counter += 1;
-        }
-
-        return pushed;
-    }
-
     fn is_done(&self) -> bool {
         if self.wrapped.is_empty() || self.counter >= self.iterations {
             return true;

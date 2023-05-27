@@ -31,11 +31,6 @@ impl Seq for ConstSeq {
         }
     }
 
-    fn push(&mut self, data: NodeData) -> Option<NodeData> {
-        self.enumerated = true;
-        None
-    }
-
     fn is_done(&self) -> bool {
         self.enumerated
     }

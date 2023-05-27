@@ -5,14 +5,14 @@ use alloc::{
 };
 use nom::{
     bytes::complete::{is_not, tag},
-    character::complete::{alphanumeric1, anychar, i32 as parsei32, multispace0},
+    character::complete::{alphanumeric1, anychar, i32 as parse_i32, multispace0},
+    number::complete::{float},
     combinator::{map, opt},
     error::ParseError,
     multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, separated_pair},
     IResult, Parser,
 };
-
 use crate::{
     ast::{
         DeviceAST, EndpointAST, FlowAST, MachineAST, NodeAST, NodeParamAST, ProgramAST, SeqAST,
@@ -30,7 +30,14 @@ where
 }
 
 fn parse_int(i: &str) -> IResult<&str, NodeData> {
-    return map(parsei32, |n| NodeData::Int(n))(i);
+    return map(parse_i32, |n| NodeData::Int(n))(i);
+}
+
+fn parse_float(i: &str) -> IResult<&str, NodeData> {
+    let (i, f) = map(float, |f| NodeData::Float(f))(i)?;
+    let (i, _) = tag("f")(i)?;
+
+    return Ok((i, f));
 }
 
 fn parse_char(i: &str) -> IResult<&str, NodeData> {
@@ -48,7 +55,11 @@ fn parse_bool(i: &str) -> IResult<&str, NodeData> {
 }
 
 fn parse_primitive(i: &str) -> IResult<&str, NodeData> {
-    return parse_int.or(parse_char).or(parse_bool).parse(i);
+    return parse_float
+        .or(parse_int)
+        .or(parse_char)
+        .or(parse_bool)
+        .parse(i);
 }
 
 fn parse_const_seq(i: &str) -> IResult<&str, SeqAST> {
@@ -57,7 +68,7 @@ fn parse_const_seq(i: &str) -> IResult<&str, SeqAST> {
 }
 
 fn parse_repeat_seq_count(i: &str) -> IResult<&str, i32> {
-    let (i, times) = ws(parsei32)(i)?;
+    let (i, times) = ws(parse_i32)(i)?;
     let (i, _) = ws(tag("*"))(i)?;
 
     return Ok((i, times));

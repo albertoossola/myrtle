@@ -12,7 +12,7 @@ use crate::{
 
 pub struct App {
     listener: Listener,
-    machine: Machine,
+    machine: Option<Machine>,
     hal: TestHal,
 }
 
@@ -21,8 +21,12 @@ impl App {
         let listener_opt = self.listener.update();
         match listener_opt {
             Some(buf) => {
+                //Set the machine to none to invoke the drop() methods;
+                self.machine = None;
+
                 let (_, mut ast) = parse_program(&buf).map_err(|_| ())?;
-                self.machine = make_program(&mut self.hal, &mut ast).map_err(|_| ())?;
+
+                self.machine = make_program(&mut self.hal, &mut ast).map_err(|_| ()).ok();
             }
             None => {}
         };
@@ -31,16 +35,25 @@ impl App {
     }
 
     fn update_stuff(&mut self) {
-        self.update_listener();
+        for _ in 1..2 {
+            self.update_listener().unwrap_or(());
+        }
 
         let context = MachineRunContext {
             current_ticks: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            current_ticks_us: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_micros() as u64,
         };
 
-        self.machine.run(context);
+        match &mut self.machine {
+            Some(machine) => machine.run(context),
+            None => {}
+        };
     }
 }
 
@@ -57,7 +70,7 @@ impl Default for App {
 
         App {
             listener: Listener::new(),
-            machine: Machine::make_blank(),
+            machine: None,
             hal: hal_instance,
         }
     }

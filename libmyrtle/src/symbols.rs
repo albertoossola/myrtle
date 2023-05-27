@@ -148,6 +148,7 @@ impl Symbol {
     }
 
     pub fn open(&mut self) -> () {
+        self.source.open();
         self.open = true;
     }
 
@@ -156,6 +157,7 @@ impl Symbol {
     }
 
     pub fn close(&mut self) -> () {
+        self.source.close();
         self.open = false;
     }
 

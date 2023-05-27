@@ -12,11 +12,13 @@ use crate::{
 
 pub struct MachineRunContext {
     pub current_ticks: u64,
+    pub current_ticks_us: u64,
 }
 
 pub struct StateRunContext<'a> {
     pub machine_vars: &'a mut BTreeMap<String, Symbol>,
     pub current_ticks: u64,
+    pub current_ticks_us: u64,
 }
 
 pub struct State {
@@ -33,6 +35,7 @@ impl State {
                 state_vars: &mut self.vars,
                 machine_vars: context.machine_vars,
                 current_ticks: context.current_ticks,
+                current_ticks_us: context.current_ticks_us,
             };
 
             s.run(flow_context);
@@ -53,6 +56,7 @@ impl Machine {
         state.run(StateRunContext {
             machine_vars: &mut self.variables,
             current_ticks: context.current_ticks,
+            current_ticks_us: context.current_ticks_us,
         });
     }
 

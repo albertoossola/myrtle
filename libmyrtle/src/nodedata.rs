@@ -5,6 +5,7 @@ use crate::seq::Seq;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum NodeData {
     Int(i32),
+    Float(f32),
     Bool(bool),
     Char(char),
     Start,
