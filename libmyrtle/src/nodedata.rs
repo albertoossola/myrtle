@@ -14,7 +14,7 @@ pub enum NodeData {
     Nil,
 }
 
-pub enum NodeParam {
+pub enum NodeArg {
     Base(NodeData),
     String(String),
     Seq(Box<dyn Seq>),

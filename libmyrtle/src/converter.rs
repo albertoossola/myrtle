@@ -79,11 +79,11 @@ fn make_seq(ast: &SeqAST) -> Box<dyn Seq> {
     };
 }
 
-fn make_param(ast: &NodeParamAST) -> NodeParam {
+fn make_param(ast: &NodeArgAST) -> NodeArg {
     match ast {
-        NodeParamAST::Base(data) => NodeParam::Base(*data),
-        NodeParamAST::String(str) => NodeParam::String(str.clone()),
-        NodeParamAST::Seq(seq_ast) => NodeParam::Seq(make_seq(&seq_ast)),
+        NodeArgAST::Base(data) => NodeArg::Base(*data),
+        NodeArgAST::String(str) => NodeArg::String(str.clone()),
+        NodeArgAST::Seq(seq_ast) => NodeArg::Seq(make_seq(&seq_ast)),
     }
 }
 
@@ -122,7 +122,7 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
 }
 
 fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<Symbol, ErrorCode> {
-    let mut args: BTreeMap<String, NodeParam> = ast
+    let mut args: BTreeMap<String, NodeArg> = ast
         .args
         .iter()
         .map(|(k, v)| (k.clone(), make_param(&v)))
@@ -133,7 +133,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
             let led_num = args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
 
             match led_num {
-                NodeParam::Base(crate::NodeData::Int(num)) => {
+                NodeArg::Base(crate::NodeData::Int(num)) => {
                     Ok(Symbol::new(adapter.set_push_pull_pin(num)))
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
@@ -143,7 +143,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
             let led_num = args.remove("pin").ok_or(ErrorCode::ArgumentRequired)?;
 
             match led_num {
-                NodeParam::Base(crate::NodeData::Int(num)) => {
+                NodeArg::Base(crate::NodeData::Int(num)) => {
                     Ok(Symbol::new(adapter.set_input_pin(num)))
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
@@ -153,7 +153,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
             let channel = args.remove("channel").ok_or(ErrorCode::ArgumentRequired)?;
 
             match channel {
-                NodeParam::Base(crate::NodeData::Int(num)) => {
+                NodeArg::Base(crate::NodeData::Int(num)) => {
                     Ok(Symbol::new(adapter.set_pwm_pin(num)))
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
@@ -163,7 +163,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
             let baud = args.remove("baud").ok_or(ErrorCode::ArgumentRequired)?;
 
             match baud {
-                NodeParam::Base(crate::NodeData::Int(baud_i32)) => {
+                NodeArg::Base(crate::NodeData::Int(baud_i32)) => {
                     Ok(Symbol::new(adapter.set_uart(14, 15, baud_i32)))
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),

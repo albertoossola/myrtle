@@ -1,4 +1,4 @@
-use crate::{seq::{RepeatSeq, Seq}, Behaviour, BehaviourRunContext, ErrorCode, NodeParam, NodeData};
+use crate::{seq::{RepeatSeq, Seq}, Behaviour, BehaviourRunContext, ErrorCode, NodeArg, NodeData};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
 use crate::seq::DelimitedSeq;
 
@@ -50,9 +50,9 @@ impl Behaviour for StreamBehaviour {
         self.seq.reset();
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("items") {
-            Some(NodeParam::Seq(seq)) => self.seq = DelimitedSeq::new(seq),
+            Some(NodeArg::Seq(seq)) => self.seq = DelimitedSeq::new(seq),
             None => Err(ErrorCode::ArgumentRequired)?,
             _ => Err(ErrorCode::InvalidArgumentType)?,
         };

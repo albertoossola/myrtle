@@ -36,6 +36,6 @@ fn main() {
 
     loop {
         app.update();
-        sleep(Duration::from_micros(5000));
+        sleep(Duration::from_micros(500));
     }
 }

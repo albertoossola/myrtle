@@ -1,6 +1,6 @@
 /* Buffer */
 
-use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, MemoryDataSource, NodeParam};
+use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, MemoryDataSource, NodeArg};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
 pub struct NodeBuffer {
@@ -52,7 +52,7 @@ pub trait Behaviour {
     fn is_working(&self) -> bool { return false; }
     fn run(&mut self, context: BehaviourRunContext) -> ();
     fn reset(&mut self) -> ();
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode>;
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode>;
 }
 
 /* Node */
@@ -156,11 +156,11 @@ impl Behaviour for WatchVarBehaviour {
 
     fn reset(&mut self) -> () {}
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         self.listener_id = -1;
 
         match args.remove("var") {
-            Some(NodeParam::String(var)) => self.var_name = var,
+            Some(NodeArg::String(var)) => self.var_name = var,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,
             None => Err(ErrorCode::ArgumentRequired)?,
         };
@@ -197,9 +197,9 @@ impl Behaviour for LiteralBehaviour {
 
     fn reset(&mut self) -> () {}
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("value") {
-            Some(NodeParam::Base(value)) => self.value = value,
+            Some(NodeArg::Base(value)) => self.value = value,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,
             None => Err(ErrorCode::ArgumentRequired)?,
         };
@@ -222,7 +222,7 @@ impl Behaviour for PrintBehaviour {
 
     fn reset(&mut self) -> () {}
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         //TODO: Implement this
         return Ok(());
     }
@@ -260,9 +260,9 @@ impl Behaviour for TimerBehaviour {
 
     fn reset(&mut self) -> () {}
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("ms") {
-            Some(NodeParam::Base(NodeData::Int(var))) => self.ms = var as u64,
+            Some(NodeArg::Base(NodeData::Int(var))) => self.ms = var as u64,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,
             None => Err(ErrorCode::ArgumentRequired)?,
         };
@@ -291,7 +291,7 @@ impl Behaviour for CountBehaviour {
         self.c = 0;
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         //TODO: Implement this
         return Ok(());
     }

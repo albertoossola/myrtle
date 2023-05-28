@@ -10,9 +10,10 @@ mod machine;
 mod node;
 mod nodedata;
 mod nodes;
-mod parser;
 mod seq;
 mod symbols;
+mod mask;
+mod parser;
 
 pub use converter::*;
 pub use error::*;

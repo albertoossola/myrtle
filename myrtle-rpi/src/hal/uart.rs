@@ -14,7 +14,9 @@ pub struct Uart {
 impl Uart {
     pub fn new(tx_pin: i32, rx_pin: i32, baud: i32) -> Uart {
         println!("Setting UART baud rate");
-        let _ = Command::new(format!("stty -F /dev/ttyS0 {}", baud)).output();
+        let _ = Command::new("stty").arg((format!("-F /dev/ttyS0 {}", baud)))
+            .output()
+            .map_err(|e| println!("Failed to set baud rate: {}", e));
 
         Uart {
             baud,
@@ -42,8 +44,6 @@ impl DataSource for Uart {
     fn can_push(&self) -> bool { true }
 
     fn push(&mut self, data: NodeData) -> () {
-        println!("Pushing to UART");
-
         let byte : Option<u8> = match data {
             NodeData::Int(int) => Some((int & 0xFF) as u8),
             NodeData::Char(char) => Some(char as u8),
@@ -56,7 +56,9 @@ impl DataSource for Uart {
 
         match self.handle.as_mut() {
             Some(f) => {
-                f.write(&[byte.unwrap()]).unwrap_or(0);
+                f.write(&[byte.unwrap()])
+                    .map_err(|e| println!("{}", e))
+                    .unwrap_or(0);
             },
             None => {}
         };
@@ -67,15 +69,13 @@ impl DataSource for Uart {
     }
 
     fn open(&mut self) -> () {
-        println!("Opening UART");
-        match File::open("/dev/ttyS0") {
+        match File::options().read(true).write(true).open("/dev/ttyS0") {
             Ok(file) => self.handle = Some(file),
             _ => {}
         }
     }
 
     fn close(&mut self) -> () {
-        println!("Closing UART");
         self.handle = None;
     }
 }

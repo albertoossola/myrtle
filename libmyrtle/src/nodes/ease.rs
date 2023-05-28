@@ -1,6 +1,6 @@
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use crate::{Behaviour, BehaviourRunContext, ErrorCode, NodeData, NodeParam};
+use crate::{Behaviour, BehaviourRunContext, ErrorCode, NodeData, NodeArg};
 
 pub struct EaseBehaviour {
     pub target_value: f32,
@@ -60,9 +60,9 @@ impl Behaviour for EaseBehaviour {
         self.last_run_us = 0;
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("rate") {
-            Some(NodeParam::Base(NodeData::Float(f))) if (f >= 0.0) => {
+            Some(NodeArg::Base(NodeData::Float(f))) if (f >= 0.0) => {
                 self.rate = f;
                 return Ok(());
             },

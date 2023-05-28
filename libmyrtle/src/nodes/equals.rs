@@ -1,6 +1,6 @@
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use crate::{Behaviour, BehaviourRunContext, ErrorCode, NodeData, NodeParam};
+use crate::{Behaviour, BehaviourRunContext, ErrorCode, NodeData, NodeArg};
 
 pub struct EqualsBehaviour {
     pub value : NodeData
@@ -26,9 +26,9 @@ impl Behaviour for EqualsBehaviour {
 
     fn reset(&mut self) -> () { }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode> {
+    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("value") {
-            Some(NodeParam::Base(data)) => {
+            Some(NodeArg::Base(data)) => {
                 self.value = data;
                 return Ok(());
             },
