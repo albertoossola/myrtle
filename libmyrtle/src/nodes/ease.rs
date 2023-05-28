@@ -28,6 +28,10 @@ impl Behaviour for EaseBehaviour {
             self.last_run_us = context.current_ticks_us;
         }
 
+        if context.current_ticks_us - self.last_run_us == 0 {
+            return;
+        }
+
         match context.in_buf.pop() {
             NodeData::Float(f) => self.target_value = f,
             NodeData::Int(i) => self.target_value = i as f32,
@@ -45,9 +49,7 @@ impl Behaviour for EaseBehaviour {
             self.current_value = (self.current_value - dv).clamp(self.target_value, self.current_value);
         }
 
-        if context.current_ticks_us - self.last_run_us > 0 {
-            self.last_run_us = context.current_ticks_us;
-        }
+        self.last_run_us = context.current_ticks_us;
 
         context.out_buf.push(NodeData::Float(self.current_value));
     }

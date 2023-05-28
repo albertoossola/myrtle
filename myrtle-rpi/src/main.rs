@@ -27,7 +27,7 @@ mod app;
 use app::App;
 
 fn main() {
-    println!("Myrtle Testbench - v0.1.0");
+    println!("Myrtle for Raspberry Pi - v0.1.0");
 
     println!("Initializing...");
 
@@ -36,6 +36,6 @@ fn main() {
 
     loop {
         app.update();
-        sleep(Duration::from_micros(200));
+        sleep(Duration::from_micros(5000));
     }
 }

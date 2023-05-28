@@ -1,10 +1,12 @@
 mod push_pull;
 mod digital_input;
 mod pwm_output;
+mod uart;
 
 use push_pull::PushPull;
 use digital_input::DigitalInput;
 use pwm_output::PwmOutput;
+use uart::Uart;
 
 use std::{
     cell::RefCell,
@@ -36,6 +38,10 @@ impl HWAdapter for TestHal {
 
     fn set_pwm_pin(&mut self, channel: i32) -> Box<dyn DataSource> {
         return Box::new(PwmOutput::new(channel));
+    }
+
+    fn set_uart(&mut self, tx_pin: i32, rx_pin: i32, baud: i32) -> Box<dyn DataSource> {
+        return Box::new(Uart::new(tx_pin, rx_pin, baud));
     }
 
     fn get_ms_time(&self) -> u64 {

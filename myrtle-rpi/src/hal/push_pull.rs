@@ -1,3 +1,5 @@
+use std::thread::sleep;
+use std::time::Duration;
 use libmyrtle::{DataSource, NodeData};
 
 pub struct PushPull {
@@ -7,11 +9,14 @@ pub struct PushPull {
 
 impl PushPull {
     pub fn new(pin : i32) -> PushPull {
-        std::fs::write("/sys/class/gpio/export", pin.to_string()).unwrap_or(());
-        std::fs::write(
+        _ = std::fs::write("/sys/class/gpio/export", pin.to_string());
+
+        sleep(Duration::from_millis(50));
+
+        _ = std::fs::write(
             format!("/sys/class/gpio/gpio{}/direction", pin),
             "out"
-        ).unwrap_or(());
+        ).map_err(|e| {println!("{}", e)});
 
         PushPull {
             cur_state: 0,

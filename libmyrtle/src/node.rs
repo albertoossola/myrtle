@@ -49,7 +49,7 @@ pub struct BehaviourRunContext<'a> {
 /* Behaviour */
 
 pub trait Behaviour {
-    fn is_working(&self) -> bool;
+    fn is_working(&self) -> bool { return false; }
     fn run(&mut self, context: BehaviourRunContext) -> ();
     fn reset(&mut self) -> ();
     fn init(&mut self, args: &mut BTreeMap<String, NodeParam>) -> Result<(), ErrorCode>;

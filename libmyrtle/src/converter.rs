@@ -98,6 +98,7 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
         "debounce" => Box::new(DebounceBehaviour::new()),
         "watchvar" => Box::new(WatchVarBehaviour::new()),
         "ease" => Box::new(EaseBehaviour::new()),
+        "equals" => Box::new(EqualsBehaviour::new()),
         _ => Err(ErrorCode::UnknownNodeKind)?,
     };
 
@@ -158,6 +159,16 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
                 _ => Err(ErrorCode::InvalidArgumentType),
             }
         },
+        "uart" => {
+            let baud = args.remove("baud").ok_or(ErrorCode::ArgumentRequired)?;
+
+            match baud {
+                NodeParam::Base(crate::NodeData::Int(baud_i32)) => {
+                    Ok(Symbol::new(adapter.set_uart(14, 15, baud_i32)))
+                }
+                _ => Err(ErrorCode::InvalidArgumentType),
+            }
+        }
         _ => Err(ErrorCode::UnknownNodeKind),
     }
 }

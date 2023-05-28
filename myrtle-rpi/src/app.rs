@@ -24,9 +24,11 @@ impl App {
                 //Set the machine to none to invoke the drop() methods;
                 self.machine = None;
 
-                let (_, mut ast) = parse_program(&buf).map_err(|_| ())?;
+                let (_, mut ast) = parse_program(&buf)
+                    .map_err(|e| println!("{:?}", e))?;
 
-                self.machine = make_program(&mut self.hal, &mut ast).map_err(|_| ()).ok();
+                self.machine = make_program(&mut self.hal, &mut ast).map_err(|_| ())
+                    .map_err(|e| println!("Interpreter error")).ok();
             }
             None => {}
         };

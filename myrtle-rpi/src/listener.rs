@@ -1,4 +1,6 @@
-use std::net::{SocketAddr, UdpSocket};
+use std::fmt::Write;
+use std::io::Read;
+use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
 
 use liblink::{Buffer, RTx, MAX_DATA};
 
@@ -7,73 +9,75 @@ pub struct Listener {
     tx_buf: liblink::Buffer,
     rx_buf: liblink::Buffer,
 
-    socket: UdpSocket,
-    sender: Option<SocketAddr>,
+    socket: TcpListener,
+    stream: Option<TcpStream>,
     source_buffer: String,
 }
 
 impl Listener {
     pub fn init(&mut self) {
-        println!("Opening serial socket..");
+        println!("Opening TCP socket..");
         self.socket.set_nonblocking(true).unwrap();
+        self.stream = None;
 
-        let mut sender: Option<SocketAddr> = None;
-
-        println!("Listening for UDP packets");
+        println!("Listening for TCP packets");
     }
 
     pub fn update(&mut self) -> Option<String> {
-        let mut received_frame: [u8; MAX_DATA] = [0 as u8; MAX_DATA];
+        match self.stream.as_mut() {
+            Some(stream) => {
+                let mut buf = [0; 64];
 
-        if self.rx_buf.can_write() {
-            let mut buf = [0; 64];
-            self.socket
-                .recv_from(&mut buf)
-                .and_then(|(l, addr)| match l {
-                    0 => Ok(l),
-                    _ => {
-                        self.sender = Some(addr);
-
-                        buf.iter().take(l).for_each(|b| self.rx_buf.write(*b));
-                        Ok(l)
-                    }
-                })
-                .unwrap_or(0);
+                _ = stream
+                    .read(&mut buf)
+                    .map(|len|
+                        buf.iter()
+                            .take(len)
+                            .for_each(|b| self.source_buffer.push(*b as char))
+                    );
+            },
+            None => {
+                match self.socket.accept() {
+                    Ok((stream, _)) => self.stream = Some(stream),
+                    _ => {}
+                };
+            }
         }
 
-        self.tx_buf
-            .read()
-            .map(|txdata| self.sender.map(|addr| self.socket.send_to(&[txdata], addr)));
+        if self.source_buffer.starts_with("@@clear") {
+            println!("Receiving program...");
 
-        let rec = self
-            .rtx
-            .update(&mut self.tx_buf, &mut self.rx_buf, &mut received_frame);
+            self.source_buffer = self.source_buffer
+                .strip_prefix("@@clear")
+                .unwrap_or("")
+                .to_string();
 
-        return rec.and_then(|l| {
-            self.rtx.poll_next();
+            None
+        }
+        else if self.source_buffer.ends_with("@@run") {
+            println!("Program received");
 
-            return core::str::from_utf8(&received_frame[..l])
-                .map(|rec_str| match rec_str {
-                    "@@clear" => {
-                        println!("Receiving program...");
-                        self.source_buffer.clear();
-                        None
-                    }
-                    "@@run" => Some(self.source_buffer.clone()),
-                    _ => {
-                        self.source_buffer.push_str(rec_str);
-                        None
-                    }
-                })
-                .unwrap_or(None);
-        });
+            for _ in 0.."@@run".len() {
+                self.source_buffer.pop();
+            }
+
+            let ret_val = Some(self.source_buffer.clone());
+
+            self.source_buffer.clear();
+            self.stream = None;
+
+            return ret_val;
+        }
+        else {
+            None
+        }
     }
 
     pub fn new() -> Listener {
         let mut listener = Listener {
             rtx: RTx::new(),
-            socket: UdpSocket::bind("0.0.0.0:42069").unwrap(),
-            sender: None,
+            socket: TcpListener::bind("0.0.0.0:42069").unwrap(),
+            stream: None,
             source_buffer: String::new(),
             rx_buf: Buffer::new(),
             tx_buf: Buffer::new(),
