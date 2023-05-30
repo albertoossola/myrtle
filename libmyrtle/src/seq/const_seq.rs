@@ -31,6 +31,20 @@ impl Seq for ConstSeq {
         }
     }
 
+    fn push(&mut self, data: NodeData) -> Option<NodeData> {
+        match self.enumerated {
+            false if self.value == data => {
+                self.enumerated = true;
+                Some(NodeData::Nil)
+            },
+            false => {
+                self.enumerated = true;
+                None
+            },
+            _ => None
+        }
+    }
+
     fn is_done(&self) -> bool {
         self.enumerated
     }

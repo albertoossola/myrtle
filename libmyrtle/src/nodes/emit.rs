@@ -3,6 +3,7 @@ use crate::{
     Behaviour, BehaviourRunContext, ErrorCode, NodeArg,
 };
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
+use crate::seq::ChainSeq;
 
 pub struct EmitBehaviour {
     seq: Box<dyn Seq>,
@@ -11,7 +12,7 @@ pub struct EmitBehaviour {
 impl EmitBehaviour {
     pub fn new(emit_seq: Box<dyn Seq>) -> EmitBehaviour {
         EmitBehaviour {
-            seq: Box::new(RepeatSeq::new(0, vec![]))
+            seq: Box::new(ChainSeq::new(vec![]))
         }
     }
 }

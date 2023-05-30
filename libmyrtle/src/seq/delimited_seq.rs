@@ -48,7 +48,21 @@ impl Seq for DelimitedSeq {
         }
     }
 
+    fn push(&mut self, data: NodeData) -> Option<NodeData> {
+        if data == NodeData::Start {
+            self.reset();
+        }
+
+        let to_return = self.wrapped.push(data);
+
+        if self.wrapped.is_done() {
+            self.state = State::Closed;
+        }
+
+        to_return
+    }
+
     fn is_done(&self) -> bool {
-        self.state == Closed
+        self.state == Closed || self.wrapped.is_done()
     }
 }

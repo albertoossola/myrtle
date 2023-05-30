@@ -27,7 +27,15 @@ pub struct FlowAST {
 
 pub enum SeqAST {
     Const(NodeData),
-    Repeat(i32, Vec<SeqAST>),
+    Chain(Vec<SeqAST>),
+    Repeat(i32, Box<SeqAST>),
+    Byte
+}
+
+pub enum MaskAST {
+    Const(NodeData),
+    Chain(Vec<MaskAST>),
+    Byte()
 }
 
 pub enum NodeArgAST {

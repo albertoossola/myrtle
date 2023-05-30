@@ -1,21 +1,20 @@
 use alloc::{boxed::Box, vec::Vec};
+use crate::NodeData;
 
 use super::Seq;
 
 pub struct RepeatSeq {
-    pub wrapped: Vec<Box<dyn Seq>>,
+    pub wrapped: Box<dyn Seq>,
     pub iterations: i32,
     pub counter: i32,
-    pub index: usize,
 }
 
 impl RepeatSeq {
-    pub fn new(iterations: i32, wrapped: Vec<Box<dyn Seq>>) -> RepeatSeq {
+    pub fn new(iterations: i32, wrapped: Box<dyn Seq>) -> RepeatSeq {
         RepeatSeq {
             wrapped,
             iterations,
-            counter: 0,
-            index: 0,
+            counter: 0
         }
     }
 }
@@ -23,8 +22,7 @@ impl RepeatSeq {
 impl Seq for RepeatSeq {
     fn reset(&mut self) -> () {
         self.counter = 0;
-        self.index = 0;
-        self.wrapped.iter_mut().for_each(|w| w.reset());
+        self.wrapped.reset();
     }
 
     fn poll(&mut self) -> Option<crate::NodeData> {
@@ -32,25 +30,33 @@ impl Seq for RepeatSeq {
             return None;
         }
 
-        let current_seq = &mut self.wrapped[self.index];
+        let to_return = self.wrapped.poll();
 
-        let polled = current_seq.poll();
-
-        if current_seq.is_done() {
-            current_seq.reset();
-            self.index += 1;
-        }
-
-        if self.index >= self.wrapped.len() {
-            self.index = 0;
+        if self.wrapped.is_done() {
+            self.wrapped.reset();
             self.counter += 1;
         }
 
-        return polled;
+        return to_return;
+    }
+
+    fn push(&mut self, data : NodeData) -> Option<crate::NodeData> {
+        if self.is_done() {
+            return None;
+        }
+
+        let to_return = self.wrapped.push(data);
+
+        if self.wrapped.is_done() {
+            self.wrapped.reset();
+            self.counter += 1;
+        }
+
+        return to_return;
     }
 
     fn is_done(&self) -> bool {
-        if self.wrapped.is_empty() || self.counter >= self.iterations {
+        if self.wrapped.is_done() || self.counter >= self.iterations {
             return true;
         }
 

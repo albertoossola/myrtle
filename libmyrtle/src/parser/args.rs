@@ -7,7 +7,7 @@ use nom::sequence::{delimited, separated_pair};
 use crate::ast::NodeArgAST;
 use crate::parser::nodedata::parse_nodedata;
 use crate::parser::primitive::parse_string;
-use crate::parser::seq::parse_seq;
+use crate::parser::seq::{parse_chain_seq};
 use crate::parser::utils::ws;
 
 
@@ -18,7 +18,7 @@ pub fn parse_string_arg(i: &str) -> IResult<&str, NodeArgAST> {
 pub fn parse_arg_value(i: &str) -> IResult<&str, NodeArgAST> {
     return parse_string_arg
         .or(parse_nodedata.map(|p| NodeArgAST::Base(p)))
-        .or(parse_seq.map(|s| NodeArgAST::Seq(s)))
+        .or(parse_chain_seq.map(|s| NodeArgAST::Seq(s)))
         .parse(i);
 }
 

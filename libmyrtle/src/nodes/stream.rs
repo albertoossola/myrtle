@@ -1,6 +1,6 @@
 use crate::{seq::{RepeatSeq, Seq}, Behaviour, BehaviourRunContext, ErrorCode, NodeArg, NodeData};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
-use crate::seq::DelimitedSeq;
+use crate::seq::{ChainSeq, DelimitedSeq};
 
 pub struct StreamBehaviour {
     is_streaming: bool,
@@ -12,7 +12,7 @@ impl StreamBehaviour {
         StreamBehaviour {
             is_streaming: false,
             seq: DelimitedSeq::new(
-                Box::new(RepeatSeq::new(0, vec![]))
+                Box::new(ChainSeq::new(vec![]))
             )
         }
     }

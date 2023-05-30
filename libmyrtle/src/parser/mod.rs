@@ -3,6 +3,7 @@ mod primitive;
 mod utils;
 mod seq;
 mod nodedata;
+mod mask;
 
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};

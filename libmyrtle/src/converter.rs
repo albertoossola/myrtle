@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec, vec::Vec};
 
 use crate::nodes::*;
-use crate::seq::{ConstSeq, DelimitedSeq, RepeatSeq, Seq};
+use crate::seq::{ByteSeq, ChainSeq, ConstSeq, DelimitedSeq, RepeatSeq, Seq};
 use crate::{ast::*, *};
 
 pub fn make_program(
@@ -72,10 +72,12 @@ fn make_flow(ast: &mut FlowAST) -> Result<Box<Node>, ErrorCode> {
 fn make_seq(ast: &SeqAST) -> Box<dyn Seq> {
     return match ast {
         SeqAST::Const(value) => Box::new(ConstSeq::new(*value)),
-        SeqAST::Repeat(times, inner_asts) => {
-            let inner_seqs = inner_asts.iter().map(|s| make_seq(s)).collect();
-            Box::new(RepeatSeq::new(*times, inner_seqs))
-        }
+        SeqAST::Chain(inner) => Box::new(ChainSeq::new(inner.iter().map(|i| make_seq(i)).collect())),
+        SeqAST::Repeat(times, inner) => {
+            let inner_seq = make_seq(inner);
+            Box::new(RepeatSeq::new(*times, inner_seq))
+        },
+        SeqAST::Byte => Box::new(ByteSeq::new())
     };
 }
 
@@ -90,8 +92,8 @@ fn make_param(ast: &NodeArgAST) -> NodeArg {
 fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     let mut behaviour: Box<dyn Behaviour> = match ast.kind.as_str() {
         "timer" => Box::new(TimerBehaviour::new(500)),
-        "emit" => Box::new(EmitBehaviour::new(Box::new(RepeatSeq::new(0, vec![])))),
-        "stream" => Box::new(StreamBehaviour::new(Box::new(RepeatSeq::new(0, vec![])))),
+        "emit" => Box::new(EmitBehaviour::new(Box::new(ChainSeq::new(vec![])))),
+        "stream" => Box::new(StreamBehaviour::new(Box::new(ChainSeq::new(vec![])))),
         "literal" => Box::new(LiteralBehaviour::new()),
         "setvar" => Box::new(SetVarBehaviour::new(String::from(""))),
         "delay" => Box::new(DelayBehaviour::new()),
@@ -99,6 +101,7 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
         "watchvar" => Box::new(WatchVarBehaviour::new()),
         "ease" => Box::new(EaseBehaviour::new()),
         "equals" => Box::new(EqualsBehaviour::new()),
+        "mask" => Box::new(MaskBehaviour::new()),
         _ => Err(ErrorCode::UnknownNodeKind)?,
     };
 

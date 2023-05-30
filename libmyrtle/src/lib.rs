@@ -12,7 +12,6 @@ mod nodedata;
 mod nodes;
 mod seq;
 mod symbols;
-mod mask;
 mod parser;
 
 pub use converter::*;
