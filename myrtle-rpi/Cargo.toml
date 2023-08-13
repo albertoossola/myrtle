@@ -10,3 +10,8 @@ libmyrtle = { path = "../libmyrtle" }
 liblink = { path = "../liblink" }
 ringbuffer = "0.13.0"
 rppal = "0.14.1"
+i2cdev = "0.6.0"
+
+
+[features]
+default = []

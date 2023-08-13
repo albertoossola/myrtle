@@ -2,11 +2,13 @@ mod push_pull;
 mod digital_input;
 mod pwm_output;
 mod uart;
+mod i2c;
 
 use push_pull::PushPull;
 use digital_input::DigitalInput;
 use pwm_output::PwmOutput;
 use uart::Uart;
+use i2c::I2CAdapter;
 
 use std::{
     cell::RefCell,
@@ -42,6 +44,10 @@ impl HWAdapter for TestHal {
 
     fn set_uart(&mut self, tx_pin: i32, rx_pin: i32, baud: i32) -> Box<dyn DataSource> {
         return Box::new(Uart::new(tx_pin, rx_pin, baud));
+    }
+
+    fn set_i2c(&mut self, sda_pin: i32, scl_pin: i32) -> Box<dyn DataSource> {
+        return Box::new(I2CAdapter::new(sda_pin, scl_pin));
     }
 
     fn get_ms_time(&self) -> u64 {

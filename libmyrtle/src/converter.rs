@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec, vec::Vec};
 
 use crate::nodes::*;
-use crate::seq::{ByteSeq, ChainSeq, ConstSeq, DelimitedSeq, RepeatSeq, Seq};
+use crate::seq::{ByteSeq, ChainSeq, ConstSeq, RepeatSeq, Seq};
 use crate::{ast::*, *};
 
 pub fn make_program(
@@ -72,12 +72,14 @@ fn make_flow(ast: &mut FlowAST) -> Result<Box<Node>, ErrorCode> {
 fn make_seq(ast: &SeqAST) -> Box<dyn Seq> {
     return match ast {
         SeqAST::Const(value) => Box::new(ConstSeq::new(*value)),
-        SeqAST::Chain(inner) => Box::new(ChainSeq::new(inner.iter().map(|i| make_seq(i)).collect())),
+        SeqAST::Chain(inner) => {
+            Box::new(ChainSeq::new(inner.iter().map(|i| make_seq(i)).collect()))
+        }
         SeqAST::Repeat(times, inner) => {
             let inner_seq = make_seq(inner);
             Box::new(RepeatSeq::new(*times, inner_seq))
-        },
-        SeqAST::Byte => Box::new(ByteSeq::new())
+        }
+        SeqAST::Byte => Box::new(ByteSeq::new()),
     };
 }
 
@@ -151,7 +153,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
             }
-        },
+        }
         "pwm" => {
             let channel = args.remove("channel").ok_or(ErrorCode::ArgumentRequired)?;
 
@@ -161,7 +163,7 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
             }
-        },
+        }
         "uart" => {
             let baud = args.remove("baud").ok_or(ErrorCode::ArgumentRequired)?;
 
@@ -171,7 +173,18 @@ fn make_endpoint(adapter: &mut dyn HWAdapter, ast: &mut EndpointAST) -> Result<S
                 }
                 _ => Err(ErrorCode::InvalidArgumentType),
             }
-        }
+        },
+        "i2c" => {
+            let sda_pin = args.remove("sda").ok_or(ErrorCode::ArgumentRequired)?;
+            let scl_pin = args.remove("scl").ok_or(ErrorCode::ArgumentRequired)?;
+
+            match (sda_pin, scl_pin) {
+                (NodeArg::Base(NodeData::Int(sda)), NodeArg::Base(NodeData::Int(scl))) => {
+                    Ok(Symbol::new(adapter.set_i2c(sda, scl)))
+                },
+                _ => Err(ErrorCode::InvalidArgumentType)
+            }
+        },
         _ => Err(ErrorCode::UnknownNodeKind),
     }
 }

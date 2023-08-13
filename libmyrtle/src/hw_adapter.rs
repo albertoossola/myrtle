@@ -10,6 +10,8 @@ pub trait HWAdapter {
     fn set_pwm_pin(&mut self, channel: i32) -> Box<dyn DataSource>;
     fn set_uart(&mut self, tx_pin: i32, rx_pin: i32, baud: i32) -> Box<dyn DataSource>;
 
+    fn set_i2c(&mut self, sda_pin: i32, scl_pin: i32) -> Box<dyn DataSource>;
+
     fn get_ms_time(&self) -> u64;
     fn get_us_time(&self) -> u64;
 }

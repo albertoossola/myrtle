@@ -7,7 +7,8 @@ machine main {
     state entry {
         watchvar(var="btn") 
 		>> debounce(period=50) 
-		>> emit(items=[0, 0, 1, 1]) 
+		>> stream(items=[3 * [1, 0]])
+		>> delay(ms=100)
 		>> setvar(var="led");
     }
 }

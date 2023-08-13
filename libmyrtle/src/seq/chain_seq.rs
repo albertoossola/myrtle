@@ -1,5 +1,5 @@
-use alloc::{boxed::Box, vec::Vec};
 use crate::NodeData;
+use alloc::{boxed::Box, vec::Vec};
 
 use super::Seq;
 
@@ -10,10 +10,7 @@ pub struct ChainSeq {
 
 impl ChainSeq {
     pub fn new(wrapped: Vec<Box<dyn Seq>>) -> ChainSeq {
-        ChainSeq {
-            wrapped,
-            index: 0,
-        }
+        ChainSeq { wrapped, index: 0 }
     }
 }
 
@@ -55,5 +52,68 @@ impl Seq for ChainSeq {
 
     fn is_done(&self) -> bool {
         self.index >= self.wrapped.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::{boxed::Box, string::String, vec, vec::Vec};
+
+    use crate::{
+        seq::{ByteSeq, ConstSeq, Seq},
+        NodeData,
+    };
+
+    use super::ChainSeq;
+
+    #[test]
+    fn filter_fixed() {
+        let content: Vec<Box<dyn Seq>> = vec![
+            Box::new(ConstSeq::new(crate::NodeData::Char('H'))),
+            Box::new(ConstSeq::new(crate::NodeData::Char('i'))),
+            Box::new(ConstSeq::new(crate::NodeData::Char('!'))),
+        ];
+
+        let mut seq = ChainSeq::new(content);
+
+        for c in "Hi!".chars() {
+            let push_result = seq.push(crate::NodeData::Char(c));
+
+            let is_success = match push_result {
+                Some(NodeData::Nil) => true,
+                _ => false,
+            };
+
+            assert!(is_success);
+        }
+    }
+
+    #[test]
+    fn filter_middle() {
+        let content: Vec<Box<dyn Seq>> = vec![
+            Box::new(ConstSeq::new(crate::NodeData::Char('H'))),
+            Box::new(ConstSeq::new(crate::NodeData::Char('i'))),
+            Box::new(ConstSeq::new(crate::NodeData::Char('!'))),
+            Box::new(ByteSeq::new()),
+            Box::new(ByteSeq::new()),
+        ];
+
+        let mut seq = ChainSeq::new(content);
+
+        let mut output = String::new();
+
+        for letter in "Hi!XY".chars() {
+            let push_result = seq.push(crate::NodeData::Char(letter));
+
+            match push_result {
+                Some(NodeData::Int(i)) => {
+                    output.push(char::from_u32(i as u32).unwrap());
+                }
+                None => panic!(),
+                _ => {}
+            };
+        }
+
+        assert_eq!(output, "XY");
     }
 }

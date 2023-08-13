@@ -1,6 +1,9 @@
-use crate::{seq::{RepeatSeq, Seq}, Behaviour, BehaviourRunContext, ErrorCode, NodeArg, NodeData};
-use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
 use crate::seq::ChainSeq;
+use crate::{
+    seq::{RepeatSeq, Seq},
+    Behaviour, BehaviourRunContext, ErrorCode, NodeArg, NodeData,
+};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
 
 pub struct MaskBehaviour {
     seq: Box<dyn Seq>,
@@ -9,7 +12,7 @@ pub struct MaskBehaviour {
 impl MaskBehaviour {
     pub fn new() -> MaskBehaviour {
         MaskBehaviour {
-            seq: Box::new(ChainSeq::new(vec![]))
+            seq: Box::new(ChainSeq::new(vec![])),
         }
     }
 }
@@ -23,24 +26,14 @@ impl Behaviour for MaskBehaviour {
         /* Pop the in buffer */
         let data = context.in_buf.pop();
 
-        if data == NodeData::Start {
-            context.out_buf.push(data);
-            self.seq.reset();
-        }
-        else if data == NodeData::End {
-            context.out_buf.push(data);
-            self.seq.reset();
-        }
-        else {
-            match self.seq.push(data) {
-                Some(s) if s == NodeData::Nil => {},
-                Some(s) => context.out_buf.push(s),
-                None => {
-                    context.out_buf.push(NodeData::End);
-                    self.seq.reset();
-                }
-            };
-        }
+        match self.seq.push(data) {
+            Some(s) if s == NodeData::Nil => {}
+            Some(s) => context.out_buf.push(s),
+            None => {
+                context.out_buf.push(NodeData::End);
+                self.seq.reset();
+            }
+        };
 
         //TODO: If successful, send a pulse to a callback symbol
         if self.seq.is_done() {
