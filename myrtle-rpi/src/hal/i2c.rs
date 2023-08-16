@@ -1,12 +1,7 @@
-use crate::hal::i2c::I2CStatus::Idle;
 use libmyrtle::{DataSource, NodeData};
-use std::borrow::Cow::Owned;
-use std::ffi::c_int;
-use std::fs::{read, File, OpenOptions};
-use std::io::{Read, Write};
-use std::os::fd::{AsFd, AsRawFd, FromRawFd, OwnedFd, RawFd};
-use i2cdev::core::{I2CDevice, I2CTransfer};
-use i2cdev::linux::LinuxI2CDevice;
+use i2cdev::{linux::LinuxI2CDevice, core::I2CDevice};
+use crate::hal::open_drain::OpenDrain;
+use crate::hal::software_i2c::SoftwareI2C;
 
 enum I2CStatus {
     Idle,
@@ -16,13 +11,16 @@ enum I2CStatus {
 
 pub struct I2CAdapter {
     status: I2CStatus,
-    i2c_handle: LinuxI2CDevice,
-    write_buffer: Vec<u8>
+    i2c_handle: SoftwareI2C,
+    last_value_on_bus: Option<u8>
 }
 
 impl DataSource for I2CAdapter {
     fn poll(&mut self) -> NodeData {
-        return NodeData::Nil;
+        match self.last_value_on_bus {
+            None => NodeData::Nil,
+            Some(n) => NodeData::Int(n as i32)
+        }
     }
 
     fn can_push(&self) -> bool {
@@ -34,20 +32,25 @@ impl DataSource for I2CAdapter {
         match self.status {
             I2CStatus::WaitingAddress => match data {
                 NodeData::Int(n) => {
-                    self.i2c_handle.set_slave_address(n as u16).unwrap();
+                    self.i2c_handle.start();
+                    self.i2c_handle.send_byte(n as u8);
 
                     println!("Set slave address to: {}", n);
-
                     self.status = I2CStatus::WaitingData;
                 },
                 _ => {}
             },
             I2CStatus::WaitingData => match data {
                 NodeData::Int(n) => {
-                    self.write_buffer.push(n as u8);
+                    self.i2c_handle.send_byte(n as u8);
+                    self.last_value_on_bus = Some(n as u8);
 
                     println!("I2C - Adding byte: {}", n);
-                }
+                },
+                NodeData::Nil => {
+                    let read_data = 0x00;
+                    self.last_value_on_bus = Some(read_data);
+                },
                 _ => {}
             },
             _ => {}
@@ -62,7 +65,8 @@ impl DataSource for I2CAdapter {
     }
 
     fn open(&mut self) -> () {
-        self.write_buffer.clear();
+        self.last_value_on_bus = None;
+
         match self.status {
             I2CStatus::Idle => {
                 self.status = I2CStatus::WaitingAddress;
@@ -72,10 +76,11 @@ impl DataSource for I2CAdapter {
     }
 
     fn close(&mut self) -> () {
-        self.i2c_handle.write(&self.write_buffer).ok();
+        //self.i2c_handle.smbus_write_byte(&self.write_buffer).ok();
 
+        self.i2c_handle.close();
+        self.last_value_on_bus = None;
         self.status = I2CStatus::Idle;
-        self.write_buffer.clear();
 
         println!("I2C - data sent");
     }
@@ -88,8 +93,11 @@ impl I2CAdapter {
         }
 
         return I2CAdapter {
-            i2c_handle: LinuxI2CDevice::new("/dev/i2c-1", 0x00).unwrap(),
-            write_buffer: vec![],
+            i2c_handle: SoftwareI2C {
+                sda_od: OpenDrain::new(2),
+                scl_od: OpenDrain::new(3)
+            },
+            last_value_on_bus: None,
             status: I2CStatus::Idle,
         };
     }

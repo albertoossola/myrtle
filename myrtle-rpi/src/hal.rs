@@ -3,6 +3,8 @@ mod digital_input;
 mod pwm_output;
 mod uart;
 mod i2c;
+mod software_i2c;
+mod open_drain;
 
 use push_pull::PushPull;
 use digital_input::DigitalInput;
