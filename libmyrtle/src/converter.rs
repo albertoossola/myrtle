@@ -31,7 +31,7 @@ pub fn make_machine(ast: &mut MachineAST) -> Result<Machine, ErrorCode> {
     let machine = Machine {
         cur_state: String::from("entry"),
         variables: BTreeMap::new(),
-        states: BTreeMap::from_iter(states),
+        states: BTreeMap::from_iter(states)
     };
 
     return Ok(machine);
@@ -93,11 +93,13 @@ fn make_param(ast: &NodeArgAST) -> NodeArg {
 
 fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     let mut behaviour: Box<dyn Behaviour> = match ast.kind.as_str() {
+        "once" => Box::new(OnceBehaviour::new()),
         "timer" => Box::new(TimerBehaviour::new(500)),
         "emit" => Box::new(EmitBehaviour::new(Box::new(ChainSeq::new(vec![])))),
         "stream" => Box::new(StreamBehaviour::new(Box::new(ChainSeq::new(vec![])))),
         "literal" => Box::new(LiteralBehaviour::new()),
         "setvar" => Box::new(SetVarBehaviour::new(String::from(""))),
+        "setstate" => Box::new(SetStateBehaviour::new(String::from("entry"))),
         "delay" => Box::new(DelayBehaviour::new()),
         "debounce" => Box::new(DebounceBehaviour::new()),
         "watchvar" => Box::new(WatchVarBehaviour::new()),

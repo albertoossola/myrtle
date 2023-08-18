@@ -44,6 +44,7 @@ pub struct BehaviourRunContext<'a> {
     pub state_vars: &'a mut BTreeMap<String, Symbol>,
     pub current_ticks: u64,
     pub current_ticks_us: u64,
+    pub current_state: &'a mut String
 }
 
 /* Behaviour */
@@ -62,6 +63,7 @@ pub struct NodeRunContext<'a> {
     pub state_vars: &'a mut BTreeMap<String, Symbol>,
     pub current_ticks: u64,
     pub current_ticks_us: u64,
+    pub current_state: &'a mut String
 }
 
 pub struct Node {
@@ -96,6 +98,7 @@ impl Node {
                 state_vars: context.state_vars,
                 current_ticks: context.current_ticks,
                 current_ticks_us: context.current_ticks_us,
+                current_state: context.current_state
             };
 
             self.behaviour.run(behaviour_context);
@@ -104,6 +107,11 @@ impl Node {
             Some(next) => next.run(context),
             None => {}
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.behaviour.reset();
+        self.in_buf.pop();
     }
 }
 
@@ -258,7 +266,9 @@ impl Behaviour for TimerBehaviour {
         }
     }
 
-    fn reset(&mut self) -> () {}
+    fn reset(&mut self) -> () {
+        self.last_tick = 0;
+    }
 
     fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("ms") {

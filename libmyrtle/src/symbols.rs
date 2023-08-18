@@ -148,6 +148,10 @@ impl Symbol {
     }
 
     pub fn open(&mut self) -> () {
+        if self.open {
+            self.close();
+        }
+
         self.source.open();
         self.open = true;
     }
@@ -157,8 +161,10 @@ impl Symbol {
     }
 
     pub fn close(&mut self) -> () {
-        self.source.close();
-        self.open = false;
+        if self.open {
+            self.source.close();
+            self.open = false;
+        }
     }
 
     pub fn is_open(&self) -> bool {

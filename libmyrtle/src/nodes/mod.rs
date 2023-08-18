@@ -6,6 +6,8 @@ mod delay;
 mod ease;
 mod equals;
 mod mask;
+mod setstate;
+mod once;
 
 pub use emit::EmitBehaviour;
 pub use delay::DelayBehaviour;
@@ -15,3 +17,5 @@ pub use debounce::DebounceBehaviour;
 pub use ease::EaseBehaviour;
 pub use equals::EqualsBehaviour;
 pub use mask::MaskBehaviour;
+pub use setstate::SetStateBehaviour;
+pub use once::OnceBehaviour;

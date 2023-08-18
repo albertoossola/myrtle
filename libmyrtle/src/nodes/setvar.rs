@@ -98,7 +98,7 @@ impl Behaviour for SetVarBehaviour {
     }
 
     fn reset(&mut self) -> () {
-        todo!()
+        self.state = State::Idle;
     }
 
     fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
