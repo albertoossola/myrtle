@@ -1,5 +1,4 @@
 use libmyrtle::{DataSource, NodeData};
-use i2cdev::{linux::LinuxI2CDevice, core::I2CDevice};
 use crate::hal::open_drain::OpenDrain;
 use crate::hal::software_i2c::SoftwareI2C;
 
@@ -35,7 +34,6 @@ impl DataSource for I2CAdapter {
                     self.i2c_handle.start();
                     self.i2c_handle.send_byte(n as u8);
 
-                    println!("Set slave address to: {}", n);
                     self.status = I2CStatus::WaitingData;
                 },
                 _ => {}
@@ -44,11 +42,9 @@ impl DataSource for I2CAdapter {
                 NodeData::Int(n) => {
                     self.i2c_handle.send_byte(n as u8);
                     self.last_value_on_bus = Some(n as u8);
-
-                    println!("I2C - Adding byte: {}", n);
                 },
-                NodeData::Nil => {
-                    let read_data = 0x00;
+                NodeData::Blank => {
+                    let read_data = self.i2c_handle.read_byte();
                     self.last_value_on_bus = Some(read_data);
                 },
                 _ => {}
@@ -76,13 +72,9 @@ impl DataSource for I2CAdapter {
     }
 
     fn close(&mut self) -> () {
-        //self.i2c_handle.smbus_write_byte(&self.write_buffer).ok();
-
         self.i2c_handle.close();
         self.last_value_on_bus = None;
         self.status = I2CStatus::Idle;
-
-        println!("I2C - data sent");
     }
 }
 

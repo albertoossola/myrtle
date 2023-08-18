@@ -13,6 +13,10 @@ pub fn parse_end(i: &str) -> IResult<&str, NodeData> {
     tag(":end").map(|_| NodeData::End).parse(i)
 }
 
+pub fn parse_blank(i: &str) -> IResult<&str, NodeData> {
+    tag(":blank").map(|_| NodeData::Blank).parse(i)
+}
+
 pub fn parse_int_nodedata(i: &str) -> IResult<&str, NodeData> {
     parse_int.map(|i| NodeData::Int(i)).parse(i)
 }
@@ -32,6 +36,7 @@ pub fn parse_bool_nodedata(i: &str) -> IResult<&str, NodeData> {
 pub fn parse_nodedata(i: &str) -> IResult<&str, NodeData> {
     parse_start
         .or(parse_end)
+        .or(parse_blank)
         .or(parse_float_nodedata)
         .or(parse_int_nodedata)
         .or(parse_char_nodedata)

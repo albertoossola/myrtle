@@ -12,6 +12,7 @@ pub enum NodeData {
     End,
     Err,
     Nil,
+    Blank
 }
 
 pub enum NodeArg {

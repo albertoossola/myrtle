@@ -1,47 +1,58 @@
+use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use libmyrtle::{DataSource, NodeData};
+use rppal::gpio::{Pin, Gpio, InputPin, OutputPin, Level};
 
 pub struct OpenDrain {
     cur_state: i32,
-    pin: i32
+    pin_num: i32
 }
 
 impl OpenDrain {
-    pub fn new(pin : i32) -> OpenDrain {
-        _ = std::fs::write("/sys/class/gpio/export", pin.to_string());
-
-        sleep(Duration::from_millis(50));
-
-        _ = std::fs::write(
-            format!("/sys/class/gpio/gpio{}/direction", pin),
-            "out"
-        ).map_err(|e| {println!("{}", e)});
-
-        _ = std::fs::write(
-            format!("/sys/class/gpio/gpio{}/active_low", pin),
-            "1"
-        ).map_err(|e| {println!("{}", e)});
+    pub fn new(pin_num: i32) -> OpenDrain {
+        let pin = Gpio::new().unwrap().get(pin_num as u8).unwrap();
 
         OpenDrain {
             cur_state: 0,
-            pin,
+            pin_num
         }
     }
 }
 
 impl Drop for OpenDrain {
     fn drop(&mut self) {
-        std::fs::write("/sys/class/gpio/unexport", self.pin.to_string()).unwrap_or(());
+        println!("Closing open-drain pin {}", self.pin_num);
+
+        let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
+        pin.into_input_pullup();
+
+        //let mut pin = self.pin.take().unwrap();
+
+
+        //let s = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
+        //self.pin = Some(pin);
+
+        //std::fs::write("/sys/class/gpio/unexport", self.pin_num.to_string()).unwrap();
     }
 }
 
 impl DataSource for OpenDrain {
     fn poll(&mut self) -> libmyrtle::NodeData {
-        let path = format!("/sys/class/gpio/gpio{}/value", self.pin);
+        let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
+        let level = pin.read();
+
+        return match level {
+            Level::High => NodeData::Int(1),
+            Level::Low => NodeData::Int(0)
+        };
+
+        /*let path = format!("/sys/class/gpio/gpio{}/value", self.pin_num);
         let str_value = std::fs::read_to_string(path).unwrap();
 
-        return NodeData::Int(match str_value.as_str() { "1" => 1, _ => 0 });
+        return NodeData::Int(match str_value.as_str() { "1" => 1, _ => 0 });*/
     }
 
     fn can_push(&self) -> bool {
@@ -52,18 +63,33 @@ impl DataSource for OpenDrain {
         let last_state = self.cur_state;
 
         match data {
-            NodeData::Int(0) => self.cur_state = 0,
-            NodeData::Int(_) => self.cur_state = 1,
+            NodeData::Int(0) => {
+                self.cur_state = 0;
+
+                //Set to drain
+                let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
+                let mut output_pin = pin.into_output_low();
+                output_pin.set_reset_on_drop(false);
+                //self.pin = Some(pin);
+            },
+            NodeData::Int(_) => {
+                self.cur_state = 1;
+
+                //Set to open
+                let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
+                let mut input_pin = pin.into_input_pullup();
+                input_pin.set_reset_on_drop(false);
+                //self.pin = Some(pin);
+            },
             _ => {}
         }
 
-        //It's open drain, so a 0 actually corresponds to an active state
-        if last_state != self.cur_state {
+        /*if last_state != self.cur_state {
             std::fs::write(
-                format!("/sys/class/gpio/gpio{}/value", self.pin),
+                format!("/sys/class/gpio/gpio{}/value", self.pin_num),
                 match self.cur_state {0 => "1", _ => "0"}
             ).unwrap_or(());
-        }
+        }*/
     }
 
     fn can_open(&self) -> bool {
