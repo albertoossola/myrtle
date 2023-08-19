@@ -41,7 +41,7 @@ impl DataSource for I2CAdapter {
             I2CStatus::WaitingData => match data {
                 NodeData::Int(n) => {
                     self.i2c_handle.send_byte(n as u8);
-                    self.last_value_on_bus = Some(n as u8);
+                    //self.last_value_on_bus = Some(n as u8);
                 },
                 NodeData::Blank => {
                     let read_data = self.i2c_handle.read_byte();

@@ -14,4 +14,8 @@ pub trait HWAdapter {
 
     fn get_ms_time(&self) -> u64;
     fn get_us_time(&self) -> u64;
+
+    /*fn persist_file(&mut self, name : &str, bytes : &[u8]);
+    fn load_file(&mut self, name : &str) -> Option<[u8]>;
+    fn delete_file(&mut self, name : &str) -> bool;*/
 }

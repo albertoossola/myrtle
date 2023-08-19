@@ -4,20 +4,32 @@ use std::time::Duration;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use libmyrtle::{DataSource, NodeData};
-use rppal::gpio::{Pin, Gpio, InputPin, OutputPin, Level};
+use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 pub struct OpenDrain {
     cur_state: i32,
-    pin_num: i32
+    pin_num: i32,
+    gpio_line: LineHandle
 }
 
 impl OpenDrain {
     pub fn new(pin_num: i32) -> OpenDrain {
-        let pin = Gpio::new().unwrap().get(pin_num as u8).unwrap();
+
+        let line = Chip::new("/dev/gpiochip0")
+            .unwrap()
+            .get_line(pin_num as u32)
+            .unwrap();
+
+        let line_handle = line.request(
+            LineRequestFlags::OPEN_DRAIN | LineRequestFlags::OUTPUT,
+            1,
+            &format!("pin{}", pin_num)
+        ).unwrap();
 
         OpenDrain {
             cur_state: 0,
-            pin_num
+            pin_num,
+            gpio_line: line_handle
         }
     }
 }
@@ -26,8 +38,10 @@ impl Drop for OpenDrain {
     fn drop(&mut self) {
         println!("Closing open-drain pin {}", self.pin_num);
 
-        let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
-        pin.into_input_pullup();
+
+        self.gpio_line
+            .line()
+            .request(LineRequestFlags::INPUT, 0, "");
 
         //let mut pin = self.pin.take().unwrap();
 
@@ -41,13 +55,9 @@ impl Drop for OpenDrain {
 
 impl DataSource for OpenDrain {
     fn poll(&mut self) -> libmyrtle::NodeData {
-        let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
-        let level = pin.read();
+        let level = self.gpio_line.get_value().unwrap();
 
-        return match level {
-            Level::High => NodeData::Int(1),
-            Level::Low => NodeData::Int(0)
-        };
+        NodeData::Int(level as i32)
 
         /*let path = format!("/sys/class/gpio/gpio{}/value", self.pin_num);
         let str_value = std::fs::read_to_string(path).unwrap();
@@ -65,21 +75,11 @@ impl DataSource for OpenDrain {
         match data {
             NodeData::Int(0) => {
                 self.cur_state = 0;
-
-                //Set to drain
-                let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
-                let mut output_pin = pin.into_output_low();
-                output_pin.set_reset_on_drop(false);
-                //self.pin = Some(pin);
+                self.gpio_line.set_value(0);
             },
             NodeData::Int(_) => {
                 self.cur_state = 1;
-
-                //Set to open
-                let pin = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
-                let mut input_pin = pin.into_input_pullup();
-                input_pin.set_reset_on_drop(false);
-                //self.pin = Some(pin);
+                self.gpio_line.set_value(1);
             },
             _ => {}
         }

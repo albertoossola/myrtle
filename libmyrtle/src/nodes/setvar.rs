@@ -92,6 +92,7 @@ impl Behaviour for SetVarBehaviour {
             },
             State::Closing => {
                 var.close();
+                context.out_buf.push(NodeData::Int(1));
                 self.state = State::Idle;
             }
         }

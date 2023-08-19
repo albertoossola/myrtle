@@ -15,6 +15,8 @@ impl SoftwareI2C {
         };
 
         self.sda_od.push(NodeData::Int(od_value));
+
+        //std::thread::sleep(Duration::from_micros(20));
     }
 
     fn set_scl(&mut self, value : u8){
@@ -24,6 +26,8 @@ impl SoftwareI2C {
         };
 
         self.scl_od.push(NodeData::Int(od_value));
+
+        //std::thread::sleep(Duration::from_micros(20));
     }
 
     pub fn delay() {}
@@ -31,6 +35,8 @@ impl SoftwareI2C {
     pub fn start(&mut self) {
         self.set_sda(0);
         self.set_scl(0);
+
+        self.set_sda(1);
     }
 
     pub fn close(&mut self) {
@@ -44,9 +50,6 @@ impl SoftwareI2C {
     }
 
     pub fn send_byte(&mut self, data : u8){
-        //Return SDA to 1 (high impedance)
-        self.set_sda(1);
-
         for i in (0..8).rev() {
             let bit = (data >> i) & 0x01;
 
@@ -54,19 +57,18 @@ impl SoftwareI2C {
             self.tap_scl();
         }
 
+        self.set_sda(1);
+
         //Discard ack
         self.tap_scl();
+
+        self.set_sda(1);
     }
 
     pub fn read_byte(&mut self) -> u8 {
-        //Return SDA to 1 (high impedance)
-        self.set_sda(1);
-
         let mut n : u8 = 0x00;
 
         for _ in 0..8 {
-            self.tap_scl();
-
             match self.sda_od.poll() {
                 NodeData::Int(pin_value) => {
                     n = (n << 1) | (pin_value as u8 & 0x01);
@@ -75,15 +77,17 @@ impl SoftwareI2C {
                     n = n << 1;
                 }
             };
+
+            self.tap_scl();
         }
 
 
         //Send ack
-        self.set_sda(0);
+        self.set_sda(1);
         self.tap_scl();
 
         //Return SDA to 1 (high impedance)
-        //self.set_sda(1);
+        self.set_sda(1);
 
         return n;
     }
