@@ -16,15 +16,16 @@ pub struct I2CAdapter {
 
 impl DataSource for I2CAdapter {
     fn poll(&mut self) -> NodeData {
-        match self.last_value_on_bus {
+        match self.last_value_on_bus.take() {
             None => NodeData::Nil,
-            Some(n) => NodeData::Int(n as i32)
+            Some(n) => {
+                NodeData::Int(n as i32)
+            }
         }
     }
 
     fn can_push(&self) -> bool {
-        //If it's to be opened or waiting for data
-        return true;
+        self.last_value_on_bus.is_none()
     }
 
     fn push(&mut self, data: NodeData) -> () {
@@ -87,7 +88,8 @@ impl I2CAdapter {
         return I2CAdapter {
             i2c_handle: SoftwareI2C {
                 sda_od: OpenDrain::new(2),
-                scl_od: OpenDrain::new(3)
+                scl_od: OpenDrain::new(3),
+                ack_to_send: false
             },
             last_value_on_bus: None,
             status: I2CStatus::Idle,

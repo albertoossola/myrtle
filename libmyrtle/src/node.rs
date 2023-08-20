@@ -163,7 +163,7 @@ impl Behaviour for WatchVarBehaviour {
     }
 
     fn reset(&mut self) -> () {
-        //TODO: Unregister var listener
+        //TODO: Unregister listener
     }
 
     fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
