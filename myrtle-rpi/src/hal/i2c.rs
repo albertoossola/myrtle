@@ -62,8 +62,6 @@ impl DataSource for I2CAdapter {
     }
 
     fn open(&mut self) -> () {
-        self.last_value_on_bus = None;
-
         match self.status {
             I2CStatus::Idle => {
                 self.status = I2CStatus::WaitingAddress;
@@ -74,7 +72,6 @@ impl DataSource for I2CAdapter {
 
     fn close(&mut self) -> () {
         self.i2c_handle.close();
-        self.last_value_on_bus = None;
         self.status = I2CStatus::Idle;
     }
 }
