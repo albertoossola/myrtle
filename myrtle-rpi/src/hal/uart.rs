@@ -13,8 +13,12 @@ pub struct Uart {
 
 impl Uart {
     pub fn new(tx_pin: i32, rx_pin: i32, baud: i32) -> Uart {
-        println!("Setting UART baud rate");
-        let _ = Command::new("stty").arg((format!("-F /dev/ttyS0 {}", baud)))
+        println!("Setting UART baud rate: {}", baud);
+
+        let _ = Command::new("stty")
+            .arg("-F")
+            .arg("/dev/ttyS0")
+            .arg(baud.to_string())
             .output()
             .map_err(|e| println!("Failed to set baud rate: {}", e));
 
