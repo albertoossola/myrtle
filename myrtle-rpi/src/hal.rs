@@ -1,35 +1,32 @@
-mod push_pull;
 mod digital_input;
-mod pwm_output;
-mod uart;
 mod i2c;
-mod software_i2c;
 mod open_drain;
+mod push_pull;
+mod pwm_output;
+mod software_i2c;
+mod uart;
 
-use push_pull::PushPull;
 use digital_input::DigitalInput;
+use i2c::I2CAdapter;
+use push_pull::PushPull;
 use pwm_output::PwmOutput;
 use uart::Uart;
-use i2c::I2CAdapter;
 
-use std::{
-    cell::RefCell,
-    collections::BTreeMap,
-    io::{stdin, BufRead},
-    rc::Rc,
-};
 
-use libmyrtle::{DataSource, HWAdapter, NodeData};
 
-pub struct TestHal { }
 
-impl TestHal {
-    pub fn new() -> TestHal {
-        TestHal { }
+
+use libmyrtle::{DataSource, HWAdapter};
+
+pub struct RaspberryPiHal {}
+
+impl RaspberryPiHal {
+    pub fn new() -> RaspberryPiHal {
+        RaspberryPiHal {}
     }
 }
 
-impl HWAdapter for TestHal {
+impl HWAdapter for RaspberryPiHal {
     fn init(&mut self) -> () {}
 
     fn set_push_pull_pin(&mut self, pin_num: i32) -> Box<dyn libmyrtle::DataSource> {
@@ -41,6 +38,7 @@ impl HWAdapter for TestHal {
     }
 
     fn set_pwm_pin(&mut self, channel: i32) -> Box<dyn DataSource> {
+
         return Box::new(PwmOutput::new(channel));
     }
 

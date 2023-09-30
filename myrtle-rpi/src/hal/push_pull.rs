@@ -1,39 +1,68 @@
+use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use libmyrtle::{DataSource, NodeData};
+use gpio_cdev::{Chip, Line, LineHandle, LineRequestFlags};
 
 pub struct PushPull {
     cur_state: i32,
-    pin: i32
+    pin_num: i32,
+    gpio_line: LineHandle
 }
 
 impl PushPull {
-    pub fn new(pin : i32) -> PushPull {
-        _ = std::fs::write("/sys/class/gpio/export", pin.to_string());
+    pub fn new(pin_num: i32) -> PushPull {
 
-        sleep(Duration::from_millis(50));
+        let line = Chip::new("/dev/gpiochip0")
+            .unwrap()
+            .get_line(pin_num as u32)
+            .unwrap();
 
-        _ = std::fs::write(
-            format!("/sys/class/gpio/gpio{}/direction", pin),
-            "out"
-        ).map_err(|e| {println!("{}", e)});
+        let line_handle = line.request(
+            LineRequestFlags::OUTPUT,
+            1,
+            &format!("pin{}", pin_num)
+        ).unwrap();
 
         PushPull {
             cur_state: 0,
-            pin,
+            pin_num,
+            gpio_line: line_handle
         }
     }
 }
 
 impl Drop for PushPull {
     fn drop(&mut self) {
-        std::fs::write("/sys/class/gpio/unexport", self.pin.to_string()).unwrap_or(());
+        println!("Closing push-pull pin {}", self.pin_num);
+
+
+        self.gpio_line
+            .line()
+            .request(LineRequestFlags::INPUT, 0, "");
+
+        //let mut pin = self.pin.take().unwrap();
+
+
+        //let s = Gpio::new().unwrap().get(self.pin_num as u8).unwrap();
+        //self.pin = Some(pin);
+
+        //std::fs::write("/sys/class/gpio/unexport", self.pin_num.to_string()).unwrap();
     }
 }
 
 impl DataSource for PushPull {
     fn poll(&mut self) -> libmyrtle::NodeData {
-        return NodeData::Int(self.cur_state);
+        let level = self.gpio_line.get_value().unwrap();
+
+        NodeData::Int(level as i32)
+
+        /*let path = format!("/sys/class/gpio/gpio{}/value", self.pin_num);
+        let str_value = std::fs::read_to_string(path).unwrap();
+
+        return NodeData::Int(match str_value.as_str() { "1" => 1, _ => 0 });*/
     }
 
     fn can_push(&self) -> bool {
@@ -44,17 +73,23 @@ impl DataSource for PushPull {
         let last_state = self.cur_state;
 
         match data {
-            NodeData::Int(0) => self.cur_state = 0,
-            NodeData::Int(_) => self.cur_state = 1,
+            NodeData::Int(0) => {
+                self.cur_state = 0;
+                self.gpio_line.set_value(0);
+            },
+            NodeData::Int(_) => {
+                self.cur_state = 1;
+                self.gpio_line.set_value(1);
+            },
             _ => {}
         }
 
-        if last_state != self.cur_state {
+        /*if last_state != self.cur_state {
             std::fs::write(
-                format!("/sys/class/gpio/gpio{}/value", self.pin),
-                match self.cur_state {0 => "0", _ => "1"}
+                format!("/sys/class/gpio/gpio{}/value", self.pin_num),
+                match self.cur_state {0 => "1", _ => "0"}
             ).unwrap_or(());
-        }
+        }*/
     }
 
     fn can_open(&self) -> bool {

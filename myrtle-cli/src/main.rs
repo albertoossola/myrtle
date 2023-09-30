@@ -12,6 +12,9 @@ use std::{
 };
 use std::net::TcpStream;
 
+const BACKSPACE_BYTE : u8 = 0x08;
+const LINE_FEED_BYTE : u8 = 0x10;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -30,21 +33,31 @@ fn send_file(file: &mut fs::File, addr: SocketAddr) -> io::Result<()> {
     let mut buf = [0; 64];
     let mut eof = false;
 
-    _ = stream.write("@@clear".as_bytes());
+    //Send backspace to clear the buffer
+    _ = stream.write(&[BACKSPACE_BYTE]);
 
     while !eof {
         match file.read(&mut buf) {
             Ok(0) => { eof = true; }
-            Ok(len) => {
-                _ = stream.write(&buf[..len]);
-            },
-            Err(_) => panic!("Errore while reading file")
+            Ok(len) => send_bytes_through_stream(&mut stream, &buf[..len]),
+            Err(_) => panic!("Error while reading file")
         }
     }
 
-    _ = stream.write("@@run".as_bytes());
+    //Send line feed to commit changes
+    _ = stream.write(&[LINE_FEED_BYTE]);
 
     Ok(())
+}
+
+fn send_bytes_through_stream(stream : &mut TcpStream, bytes : &[u8]) {
+    for byte in bytes {
+        if *byte == BACKSPACE_BYTE || *byte == LINE_FEED_BYTE {
+            continue;
+        }
+
+        _ = stream.write(&[*byte]);
+    }
 }
 
 fn main() {

@@ -13,6 +13,9 @@ mod nodes;
 mod seq;
 mod symbols;
 mod parser;
+mod streaming_parser;
+pub mod myrtle_instance;
+pub mod interface;
 
 pub use converter::*;
 pub use error::*;
