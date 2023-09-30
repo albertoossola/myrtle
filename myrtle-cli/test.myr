@@ -1,0 +1,9 @@
+device {
+    led = out(pin=18);    
+}
+
+machine main {
+    state entry {
+	timer(ms=200) >> emit(values=[1, 0]) >> set_var(var="led");
+    }
+}

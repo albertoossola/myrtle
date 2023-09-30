@@ -1,0 +1,15 @@
+device {
+	led = out(pin=26);
+	btn = in(pin=6);	
+	uart = uart(baud=9600);
+}
+
+machine main {
+	state entry {
+		timer(ms=200) >> emit(items=[1, 0]) >> setvar(var="led");
+		timer(ms=1000) 
+			>> stream(items=[77, 121, 114, 116, 108, 101, 33, 13, 10]) 
+			>> mask(mask=[20 * u8])
+			>> setvar(var="uart");
+	}
+}

@@ -1,0 +1,33 @@
+config {
+    $stop_btn = gpio::in(pin=5);
+    
+}
+
+machine rtc(in: $i2c, in: $poll, out $h, out $m, out $s, out $ms) {
+    $rtc_dev = io::i2c::device(bus=$i2c, addr=0x23);
+
+    state entry {
+        [...] >> write($rtc_dev) >> _ >> set_state("idle");
+    }
+
+    state idle {
+        $poll >> emit([:open, 0x10, 0x00, 0x00, :close]) >> $rtc_dev >> filter([_, $s, $ms]); 
+    }
+}
+
+machine main {
+    $rtc = rtc();
+
+    state ready {
+        $stop_btn >> debounce(ms = 50) >> set_state("running"); 
+    }
+
+    state running {
+        (rtc.h | rtc.m | rtc.s | rtc.ms) >> [$rtc.h, ":", $rtc.m, ":", $rtc.s] >> &display;
+        $btn >> set_state("done");
+    }
+
+    state done {
+
+    }
+}
