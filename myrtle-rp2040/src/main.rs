@@ -7,6 +7,7 @@ extern crate panic_halt;
 extern crate libmyrtle;
 
 mod rpico;
+mod serial_port_cmd_source;
 
 /*
 use cortex_m required for the linked
@@ -19,8 +20,12 @@ use libmyrtle::*;
 use rpico::*;
 
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
+use alloc::vec::Vec;
 use cortex_m_rt::entry;
 use embedded_alloc::Heap;
+use libmyrtle::interface::channels::{Channel, MemoryBufferChannel};
+use libmyrtle::myrtle_instance::MyrtleInstance;
+use crate::serial_port_cmd_source::SerialPortCommandSource;
 
 #[global_allocator]
 static ALLOCATOR: Heap = Heap::empty();
@@ -45,69 +50,20 @@ fn main() -> ! {
     let heap_space = [0_u8; 128 * 1024];
     init_heap(&heap_space);
 
-    //Initialize hardware
-    let mut adapter = rpico::RPicoAdapter::init();
+    let hw_adapter = RPicoAdapter::init();
+    let command_source = SerialPortCommandSource::new();
 
-    let led_pin_data_source = adapter.set_push_pull_pin(25);
-    let led_pin_symbol = Symbol::new(led_pin_data_source);
+    let channels : Vec<Box<dyn Channel>> = vec![
+        Box::new(MemoryBufferChannel::new())
+    ];
 
-    let mut variables = BTreeMap::new();
-
-    variables.insert(String::from("led"), led_pin_symbol);
-
-    let set_var_node = Node {
-        behaviour: Box::new(SetVarBehaviour::new(String::from("led"))),
-        in_buf: NodeBuffer {
-            data: NodeData::Nil,
-        },
-        next: None,
-    };
-
-    let emit_node = Node {
-        behaviour: Box::new(EmitBehaviour::new(vec![
-            NodeData::Int(1),
-            NodeData::Int(0),
-            NodeData::Int(1),
-            NodeData::Int(0),
-            NodeData::Int(0),
-            NodeData::Int(0),
-            NodeData::Int(0),
-            NodeData::Int(0),
-            NodeData::Int(0),
-            NodeData::Int(0),
-            NodeData::Int(0),
-        ])),
-        in_buf: NodeBuffer {
-            data: NodeData::Nil,
-        },
-        next: Some(Box::new(set_var_node)),
-    };
-
-    let timer_node = Node {
-        behaviour: Box::new(TimerBehaviour::new(100)),
-        in_buf: NodeBuffer {
-            data: NodeData::Nil,
-        },
-        next: Some(Box::new(emit_node)),
-    };
-
-    let mut machine = Machine {
-        cur_state: String::from("myrtle_entry"),
-        variables: variables,
-        states: BTreeMap::from([(
-            String::from("myrtle_entry"),
-            State {
-                vars: BTreeMap::new(),
-                flows: vec![timer_node],
-            },
-        )]),
-    };
+    let mut myrtle_instance = MyrtleInstance::new(
+        Box::new(hw_adapter),
+        Box::new(command_source),
+        channels
+    );
 
     loop {
-        let context = MachineRunContext {
-            current_ticks: adapter.get_ms_time(),
-        };
-
-        machine.run(context);
+        myrtle_instance.step();
     }
 }

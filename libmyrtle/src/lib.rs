@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
 
@@ -16,6 +16,7 @@ mod parser;
 mod streaming_parser;
 pub mod myrtle_instance;
 pub mod interface;
+mod fs;
 
 pub use converter::*;
 pub use error::*;

@@ -5,9 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-rp2040 = []
-
 [dependencies]
 libmyrtle = { path = "../libmyrtle" }
 cortex-m-rt = "0.7.3"
