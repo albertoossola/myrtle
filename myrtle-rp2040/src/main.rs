@@ -19,13 +19,13 @@ use libmyrtle::*;
 
 use rpico::*;
 
-use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
+use crate::serial_port_cmd_source::SerialPortCommandSource;
 use alloc::vec::Vec;
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
 use cortex_m_rt::entry;
 use embedded_alloc::Heap;
 use libmyrtle::interface::channels::{Channel, MemoryBufferChannel};
 use libmyrtle::myrtle_instance::MyrtleInstance;
-use crate::serial_port_cmd_source::SerialPortCommandSource;
 
 #[global_allocator]
 static ALLOCATOR: Heap = Heap::empty();
@@ -53,15 +53,10 @@ fn main() -> ! {
     let hw_adapter = RPicoAdapter::init();
     let command_source = SerialPortCommandSource::new();
 
-    let channels : Vec<Box<dyn Channel>> = vec![
-        Box::new(MemoryBufferChannel::new())
-    ];
+    let channels: Vec<Box<dyn Channel>> = vec![Box::new(MemoryBufferChannel::new())];
 
-    let mut myrtle_instance = MyrtleInstance::new(
-        Box::new(hw_adapter),
-        Box::new(command_source),
-        channels
-    );
+    let mut myrtle_instance =
+        MyrtleInstance::new(Box::new(hw_adapter), Box::new(command_source), channels);
 
     loop {
         myrtle_instance.step();

@@ -25,7 +25,7 @@ impl RPicoAdapter {
 }
 
 impl HWAdapter for RPicoAdapter {
-    fn init() -> Self {
+    fn init(&mut self) -> Self {
         let mut pac = pac::Peripherals::take().unwrap();
         let core = pac::CorePeripherals::take().unwrap();
         let mut watchdog = Watchdog::new(pac.WATCHDOG);
