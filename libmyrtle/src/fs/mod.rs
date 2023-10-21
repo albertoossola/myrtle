@@ -12,6 +12,8 @@ pub enum FsError {
     AlreadyPresent,
     InvalidMountPoint,
     OutOfBounds,
+    DirectoryExpected,
+    FileExpected
 }
 
 pub enum FsCommand<'a> {
@@ -19,13 +21,13 @@ pub enum FsCommand<'a> {
     GetDirs(&'a mut dyn FnMut(&str) -> ()),
     MakeFile(&'a str),
     MakeDir(&'a str),
-    DeleteFile(),
-    TruncateFile(),
+    Delete,
+    TruncateFile,
     AppendToFile(&'a [u8]),
     ReadFile(usize, usize, &'a mut dyn FnMut(&[u8]) -> ()),
 }
 
 //#[automock]
 pub trait FileSystem {
-    fn run(&mut self, path: &Path, command: FsCommand) -> Result<(), FsError>;
+    fn run(&mut self, path: &Path, command: &mut FsCommand) -> Result<(), FsError>;
 }

@@ -25,7 +25,7 @@ impl RootFs {
 }
 
 impl FileSystem for RootFs {
-    fn run(&mut self, path: &Path, command: super::FsCommand) -> Result<(), FsError> {
+    fn run(&mut self, path: &Path, command: &mut super::FsCommand) -> Result<(), FsError> {
         match path {
             Path::Segment(mount_point, subpath) => {
                 let mut fs = self
