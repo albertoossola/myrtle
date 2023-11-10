@@ -4,8 +4,12 @@ members = [
     "liblink",
     "libmyrtle",
     "myrtle-rp2040",
+    "myrtle-rpi",
     #"myrtle-rpi",
-    #"myrtle-cli",
 ]
 
-default-members = ["myrtle-rp2040"]
+exclude = [
+    "myrtle-cli",
+]
+
+default-members = ["myrtle-rpi"]

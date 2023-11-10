@@ -11,7 +11,7 @@ pub struct RootFs {
 }
 
 impl RootFs {
-    fn new() -> RootFs {
+    pub fn new() -> RootFs {
         return RootFs {
             mount_points: BTreeMap::new(),
         };
