@@ -65,8 +65,7 @@ impl Machine {
         let mut next_state: String = String::from(&self.cur_state);
 
         {
-            let mut state: &mut State = self.states.get_mut(&self.cur_state).unwrap();
-
+            let state: &mut State = self.states.get_mut(&self.cur_state).unwrap();
 
             state.run(StateRunContext {
                 current_state: &mut next_state,
@@ -82,7 +81,7 @@ impl Machine {
 
         if !self.states.contains_key(&next_state) {
             next_state.clear();
-            next_state.write_str("entry").unwrap();
+            next_state.write_str("entry").ok();
         }
 
         self.cur_state = next_state;

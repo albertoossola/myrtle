@@ -9,22 +9,19 @@ impl ShellCommandHandler for WriteCommandHandler {
         &mut self,
         args: &[&str],
         context: crate::shell::context::ShellContext,
-        _callback: &mut dyn FnMut(&str) -> (),
+        callback: &mut dyn FnMut(&str) -> (),
     ) -> Result<(), crate::shell::ShellError> {
         let path = args.get(0)
             .and_then(|arg| Path::new(arg).ok())
-            .ok_or(ShellError::InvalidArgs)?;
+            .ok_or(ShellError::CommandError("path required"))?;
 
         let data = args.get(1)
-            .ok_or(ShellError::InvalidArgs)?;
+            .and_then(|arg| arg.parse().ok())
+            .ok_or(ShellError::CommandError("data required"))?;
 
-        let b64_engine = base64::engine::general_purpose::STANDARD_NO_PAD;
-        let mut bytes = [0; 64];
-
-        let bytes_written = b64_engine.decode_slice(data, &mut bytes).or(Err(ShellError::InvalidArgs))?;
-        
-        let command = &mut crate::fs::FsCommand::AppendToFile(&bytes[..bytes_written]);
-        context.fs.run(&path, command).or(Err(ShellError::IOError))
+        let buffer = [data];
+        let mut command = crate::fs::FsCommand::AppendToFile(&buffer);
+        context.fs.run(&path, &mut command).or(Err(ShellError::IOError))
     }
 
     fn get_name(&self) -> String {

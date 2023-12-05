@@ -1,15 +1,20 @@
 [workspace]
 
 members = [
-    "liblink",
     "libmyrtle",
     "myrtle-rp2040",
     "myrtle-rpi",
-    #"myrtle-rpi",
+    "myrtle-cli"
 ]
 
-exclude = [
-    "myrtle-cli",
-]
+resolver = "2"
 
-default-members = ["myrtle-rpi"]
+[profile.release]
+codegen-units = 1
+debug = 2
+strip = true
+debug-assertions = false
+incremental = false
+lto = true
+opt-level = 0
+overflow-checks = false

@@ -72,7 +72,7 @@ impl RamFs {
                         Ok(())
                     }
                     (command, _) => {
-                        let mut subnode = subnodes.get_mut(*child_name).ok_or(FsError::NotFound)?;
+                        let subnode = subnodes.get_mut(*child_name).ok_or(FsError::NotFound)?;
                         return Self::run_on_node(subnode, subpath, command);
                     }
                 }
@@ -87,11 +87,22 @@ impl RamFs {
                     Ok(())
                 }
                 FsCommand::ReadFile(offset, length, callback) => {
-                    let clamped_offset = (*offset).clamp(0, file_buffer.len());
-                    let clamped_length = (*length).clamp(0, file_buffer.len() - clamped_offset);
+                    let offset_out_of_bounds = *offset >= file_buffer.len();
+                    let length_out_of_bounds = (*offset + *length) > file_buffer.len();
 
-                    let slice = &file_buffer[clamped_offset..clamped_length];
+                    if offset_out_of_bounds {
+                        callback(&[]);
+                        return Ok(());
+                    }
+
+                    if length_out_of_bounds {
+                        callback(&file_buffer[*offset..]);
+                        return Ok(());
+                    }
+
+                    let slice = &file_buffer[*offset..(*offset + *length)];
                     callback(slice);
+
                     Ok(())
                 }
                 _ => Err(FsError::FileExpected),

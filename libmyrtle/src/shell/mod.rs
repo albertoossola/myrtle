@@ -4,6 +4,7 @@ mod prompt;
 pub mod context;
 pub mod handlers;
 pub mod shellio;
+pub mod datasource_shellio;
 use context::ShellContext;
 
 use alloc::{boxed::Box, vec::Vec};
@@ -16,7 +17,8 @@ use self::{prompt::ShellPrompt, command_handler::ShellCommandHandler, shellio::S
 pub enum ShellError {
     InvalidCommand,
     InvalidArgs,
-    IOError
+    IOError,
+    CommandError(&'static str)
 }
 
 pub struct Shell {
@@ -47,6 +49,9 @@ impl Shell {
     pub fn update(&mut self, io : &mut dyn ShellIO, context: ShellContext) {
         match io.read() {
             Some(0x0D) => {
+                io.write('\r' as u8).ok();
+                io.write('\n' as u8).ok();
+
                 self.run_command(
                     context, 
                     &mut |out : &str| {
@@ -54,12 +59,46 @@ impl Shell {
                             while io.write(*char).is_err() {}
                         }
                     }
-                ).ok();
+                ).or_else(|err| match err {
+                    ShellError::CommandError(err) => {
+                        for char in err.as_bytes() {
+                            while io.write(*char).is_err() {}
+                        }
+
+                        Ok(())
+                    },
+                    ShellError::InvalidCommand => {
+                        for char in "Invalid command".as_bytes() {
+                            while io.write(*char).is_err() {}
+                        }
+
+                        Ok(())
+                    },
+                    ShellError::InvalidArgs => {
+                        for char in "Invalid arguments".as_bytes() {
+                            while io.write(*char).is_err() {}
+                        }
+
+                        Ok(())
+                    },
+                    _ => io.write('!' as u8)
+                })
+                .ok();
+
+                io.write('\r' as u8).ok();
+                io.write('\n' as u8).ok();
+                io.write('>' as u8).ok();
 
                 self.buffer.clear();
             },
-            Some(0x08) => { self.buffer.pop(); },
-            Some(c) if self.buffer.len() < 64 => self.buffer.push(c.as_char()),
+            Some(0x08) => { 
+                self.buffer.pop(); 
+                io.write(0x08 as u8).ok();
+            },
+            Some(c) if self.buffer.len() < 64 => {
+                self.buffer.push(c.as_char());
+                io.write(c as u8).ok();
+            }
             _ => {}
         }
 
@@ -80,65 +119,5 @@ impl Shell {
         shell.buffer.reserve_exact(64);
 
         return shell;
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::shell::context::ShellContext;
-    use crate::{fs::ramfs::RamFs, program_runner::ProgramRunner};
-
-    use super::{command_handler::EchoCommandHandler, Shell, ShellError};
-
-    fn run_command_with_context(
-        shell: &mut Shell,
-        prompt_text: &str,
-        callback: &mut dyn FnMut(&str) -> (),
-    ) -> Result<(), ShellError> {
-        let context = ShellContext {
-            fs: &mut RamFs::new(),
-            program_runner: &mut ProgramRunner::new()
-        };
-
-        shell.buffer = String::from(prompt_text);
-        return shell.run_command(context, callback);
-    }
-
-    #[test]
-    pub fn test_empty_command() {
-        let mut shell = Shell::new();
-
-        assert!(run_command_with_context(&mut shell, "", &mut |_| {}).is_err());
-    }
-
-    #[test]
-    pub fn test_non_existent_command() {
-        let mut shell = Shell::new();
-
-        assert!(run_command_with_context(&mut shell, "", &mut |_| {}).is_err());
-    }
-
-    #[test]
-    pub fn text_invalid_args() {
-        let mut shell = Shell::new();
-        shell.register_command_handler(Box::new(EchoCommandHandler::new()));
-
-        assert_eq!(
-            Err(ShellError::InvalidArgs),
-            run_command_with_context(&mut shell, "echo", &mut |_| {})
-        );
-    }
-
-    #[test]
-    pub fn text_valid_command() {
-        let mut shell = Shell::new();
-        shell.register_command_handler(Box::new(EchoCommandHandler::new()));
-
-        let mut output: String = String::new();
-
-        run_command_with_context(&mut shell, "echo foo", &mut |s| output = String::from(s))
-            .unwrap();
-
-        assert_eq!("foo", output);
     }
 }

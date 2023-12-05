@@ -14,15 +14,17 @@ impl ShellCommandHandler for LsCommandHandler {
         let arg1 = args.first().ok_or(ShellError::InvalidArgs)?;
         let path = Path::new(*arg1).map_err(|_| ShellError::InvalidArgs)?;
 
-        context
+        _ = context
             .fs
-            .run(&path, &mut FsCommand::GetDirs(&mut |dir| { callback(dir); callback("\r"); }))
-            .map_err(|_| ShellError::InvalidArgs)?;
+            .run(&path, &mut FsCommand::GetDirs(&mut |dir| { callback(dir); callback("\r\n"); }))
+            .or(Err(ShellError::InvalidArgs))?;
 
-        return context
+        _ = context
             .fs
-            .run(&path, &mut FsCommand::GetFiles(&mut |dir| { callback(dir); callback("\r"); }))
-            .map_err(|_| ShellError::InvalidArgs);
+            .run(&path, &mut FsCommand::GetFiles(&mut |file| { callback(file); callback("\r\n"); }))
+            .or(Err(ShellError::InvalidArgs))?;
+
+        Ok(())
     }
 
     fn get_name(&self) -> String {

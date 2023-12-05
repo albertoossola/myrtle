@@ -1,15 +1,17 @@
 device {
-	led = out(pin=26);
-	btn = in(pin=6);	
-	uart = uart(baud=9600);
+	btn = in(pin=17);
+	btn2 = in(pin=16);
+	led = out(pin=25);
 }
 
 machine main {
 	state entry {
+		once() >> literal(value=1) >> setvar(var="led");
+		once() >> delay(ms=1000) >> setstate(state="blink");
+	}
+
+	state blink {
 		timer(ms=200) >> emit(items=[1, 0]) >> setvar(var="led");
-		timer(ms=1000) 
-			>> stream(items=[77, 121, 114, 116, 108, 101, 33, 13, 10]) 
-			>> mask(mask=[20 * u8])
-			>> setvar(var="uart");
+		once() >> delay(ms=1000) >> setstate(state="entry"); 
 	}
 }

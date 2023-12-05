@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 libmyrtle = { path = "../libmyrtle" }
-liblink = { path = "../liblink" }
 ringbuffer = "0.13.0"
 rppal = "0.14.1"
 gpio-cdev = "0.5.1"

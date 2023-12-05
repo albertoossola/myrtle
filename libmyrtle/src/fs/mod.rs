@@ -1,5 +1,3 @@
-use mockall::automock;
-
 use self::path::Path;
 
 pub mod path;

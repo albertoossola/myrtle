@@ -66,7 +66,7 @@ fn make_flow(ast: &mut FlowAST) -> Result<Box<Node>, ErrorCode> {
         return Some(Box::new(n));
     });
 
-    return Ok(n.unwrap());
+    return n.ok_or(ErrorCode::UnknownNodeKind);
 }
 
 fn make_seq(ast: &SeqAST) -> Box<dyn Seq> {
@@ -93,19 +93,19 @@ fn make_param(ast: &NodeArgAST) -> NodeArg {
 
 fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
     let mut behaviour: Box<dyn Behaviour> = match ast.kind.as_str() {
-        "once" => Box::new(OnceBehaviour::new()),
-        "timer" => Box::new(TimerBehaviour::new(500)),
+        "debounce" => Box::new(DebounceBehaviour::new()),
+        "delay" => Box::new(DelayBehaviour::new()),
+        "ease" => Box::new(EaseBehaviour::new()),
         "emit" => Box::new(EmitBehaviour::new(Box::new(ChainSeq::new(vec![])))),
-        "stream" => Box::new(StreamBehaviour::new(Box::new(ChainSeq::new(vec![])))),
+        "equals" => Box::new(EqualsBehaviour::new()),
         "literal" => Box::new(LiteralBehaviour::new()),
+        "mask" => Box::new(MaskBehaviour::new()),
+        "once" => Box::new(OnceBehaviour::new()),
         "setvar" => Box::new(SetVarBehaviour::new(String::from(""))),
         "setstate" => Box::new(SetStateBehaviour::new(String::from("entry"))),
-        "delay" => Box::new(DelayBehaviour::new()),
-        "debounce" => Box::new(DebounceBehaviour::new()),
+        "stream" => Box::new(StreamBehaviour::new(Box::new(ChainSeq::new(vec![])))),
+        "timer" => Box::new(TimerBehaviour::new(500)),
         "watchvar" => Box::new(WatchVarBehaviour::new()),
-        "ease" => Box::new(EaseBehaviour::new()),
-        "equals" => Box::new(EqualsBehaviour::new()),
-        "mask" => Box::new(MaskBehaviour::new()),
         _ => Err(ErrorCode::UnknownNodeKind)?,
     };
 

@@ -1,4 +1,3 @@
-extern crate liblink;
 extern crate libmyrtle;
 
 use std::thread::sleep;
