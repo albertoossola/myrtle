@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String};
 
 use crate::{
-    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol,
+    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol, VariableSet,
 };
 
 enum State {
@@ -102,7 +102,7 @@ impl Behaviour for SetVarBehaviour {
         self.state = State::Idle;
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("var") {
             Some(NodeArg::String(var)) => self.var_name = var,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,

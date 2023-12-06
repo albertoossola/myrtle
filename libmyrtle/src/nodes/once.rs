@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String};
 
 use crate::{
-    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol,
+    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol, VariableSet,
 };
 
 pub struct OnceBehaviour {
@@ -30,11 +30,15 @@ impl Behaviour for OnceBehaviour {
         context.out_buf.push(NodeData::Int(1));
     }
 
+    fn on_state_enter(&mut self, vars: &mut VariableSet) -> () {
+        self.ran = false;   
+    }
+
     fn reset(&mut self) -> () {
         self.ran = false;
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         Ok(())
     }
 }

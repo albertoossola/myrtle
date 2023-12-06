@@ -1,3 +1,4 @@
+use crate::VariableSet;
 use crate::seq::ChainSeq;
 use crate::{
     seq::{RepeatSeq, Seq},
@@ -45,7 +46,7 @@ impl Behaviour for MaskBehaviour {
         self.seq.reset();
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("mask") {
             Some(NodeArg::Seq(seq)) => self.seq = seq,
             None => Err(ErrorCode::ArgumentRequired)?,

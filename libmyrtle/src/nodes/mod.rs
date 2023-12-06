@@ -8,6 +8,10 @@ mod equals;
 mod mask;
 mod setstate;
 mod once;
+mod watchvar;
+mod literal;
+mod timer;
+mod count;
 
 pub use emit::EmitBehaviour;
 pub use delay::DelayBehaviour;
@@ -19,3 +23,7 @@ pub use equals::EqualsBehaviour;
 pub use mask::MaskBehaviour;
 pub use setstate::SetStateBehaviour;
 pub use once::OnceBehaviour;
+pub use watchvar::WatchVarBehaviour;
+pub use literal::LiteralBehaviour;
+pub use timer::TimerBehaviour;
+pub use count::CountBehaviour;

@@ -2,7 +2,7 @@ use alloc::{boxed::Box, collections::BTreeMap, string::String};
 use core::fmt::Write;
 
 use crate::{
-    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol,
+    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol, VariableSet,
 };
 
 pub struct SetStateBehaviour {
@@ -36,7 +36,7 @@ impl Behaviour for SetStateBehaviour {
         todo!()
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("state") {
             Some(NodeArg::String(var)) => self.state = var,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,

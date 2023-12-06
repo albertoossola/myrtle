@@ -1,6 +1,6 @@
 /* Buffer */
 
-use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, MemoryDataSource, NodeArg};
+use crate::{nodedata::NodeData, symbols::Symbol, ErrorCode, MemoryDataSource, NodeArg, VariableSet};
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
 pub struct NodeBuffer {
@@ -53,7 +53,10 @@ pub trait Behaviour {
     fn is_working(&self) -> bool { return false; }
     fn run(&mut self, context: BehaviourRunContext) -> ();
     fn reset(&mut self) -> ();
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode>;
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode>;
+    fn init(&mut self, vars: &mut VariableSet) -> () { }
+    fn on_state_change(&mut self, vars: &mut VariableSet) -> () { }
+    fn on_state_enter(&mut self, vars: &mut VariableSet) -> () { }
 }
 
 /* Node */
@@ -109,202 +112,35 @@ impl Node {
         }
     }
 
+    pub fn init(&mut self, vars: &mut VariableSet) {
+        self.behaviour.init(vars);
+
+        match self.next.as_mut() {
+            Some(next) => next.init(vars),
+            None => {}
+        }
+    }
+
     pub fn reset(&mut self) {
         self.behaviour.reset();
         self.in_buf.pop();
     }
-}
 
-/* --- Behaviours --- */
+    pub fn on_state_enter(&mut self, vars: &mut VariableSet) {
+        self.behaviour.on_state_enter(vars);
 
-/* WatchVar */
-pub struct WatchVarBehaviour {
-    var_name: String,
-    listener_id: i32,
-}
-
-impl WatchVarBehaviour {
-    pub fn new() -> WatchVarBehaviour {
-        WatchVarBehaviour {
-            var_name: String::from(""),
-            listener_id: -1,
-        }
-    }
-}
-
-impl Behaviour for WatchVarBehaviour {
-    fn is_working(&self) -> bool {
-        false
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        if !context.machine_vars.contains_key(&self.var_name) {
-            context.machine_vars.insert(
-                self.var_name.clone(),
-                Symbol::new(Box::new(MemoryDataSource::new())),
-            );
-        }
-
-        let var = context.machine_vars.get_mut(&self.var_name).unwrap();
-
-        if self.listener_id == -1 {
-            self.listener_id = var.register_listener();
-            var.activate_listener(self.listener_id);
-        }
-
-        let polled = var.poll(self.listener_id);
-
-        match polled {
-            NodeData::Nil => {}
-            _ => {
-                context.out_buf.push(polled);
-            }
-        };
-    }
-
-    fn reset(&mut self) -> () {
-        //TODO: Unregister listener
-    }
-
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
-        self.listener_id = -1;
-
-        match args.remove("var") {
-            Some(NodeArg::String(var)) => self.var_name = var,
-            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
-            None => Err(ErrorCode::ArgumentRequired)?,
-        };
-
-        Ok(())
-    }
-}
-
-/* Literal */
-
-pub struct LiteralBehaviour {
-    value: NodeData,
-}
-
-impl LiteralBehaviour {
-    pub fn new() -> LiteralBehaviour {
-        LiteralBehaviour {
-            value: NodeData::Nil,
-        }
-    }
-}
-
-impl Behaviour for LiteralBehaviour {
-    fn is_working(&self) -> bool {
-        false
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        match context.in_buf.pop() {
-            NodeData::Nil => {}
-            _ => context.out_buf.push(self.value),
-        };
-    }
-
-    fn reset(&mut self) -> () {}
-
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
-        match args.remove("value") {
-            Some(NodeArg::Base(value)) => self.value = value,
-            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
-            None => Err(ErrorCode::ArgumentRequired)?,
-        };
-
-        Ok(())
-    }
-}
-
-/* PrintBehaviour */
-pub struct PrintBehaviour {}
-
-impl Behaviour for PrintBehaviour {
-    fn is_working(&self) -> bool {
-        false
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        let data = context.in_buf.pop();
-    }
-
-    fn reset(&mut self) -> () {}
-
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
-        //TODO: Implement this
-        return Ok(());
-    }
-}
-
-/* TimerBehaviour */
-
-pub struct TimerBehaviour {
-    pub ms: u64,
-    pub last_tick: u64,
-}
-
-impl TimerBehaviour {
-    pub fn new(interval: u64) -> TimerBehaviour {
-        TimerBehaviour {
-            ms: interval,
-            last_tick: 0,
-        }
-    }
-}
-
-impl Behaviour for TimerBehaviour {
-    fn is_working(&self) -> bool {
-        false
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        let elapsed = context.current_ticks - self.last_tick;
-        if elapsed > self.ms {
-            self.last_tick = context.current_ticks;
-
-            context.out_buf.push(NodeData::Int(1));
+        match self.next.as_mut() {
+            Some(next) => next.on_state_enter(vars),
+            None => {}
         }
     }
 
-    fn reset(&mut self) -> () {
-        self.last_tick = 0;
-    }
+    pub fn on_state_change(&mut self, vars: &mut VariableSet) {
+        self.behaviour.on_state_change(vars);
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
-        match args.remove("ms") {
-            Some(NodeArg::Base(NodeData::Int(var))) => self.ms = var as u64,
-            Some(_) => Err(ErrorCode::InvalidArgumentType)?,
-            None => Err(ErrorCode::ArgumentRequired)?,
-        };
-
-        Ok(())
-    }
-}
-
-/* CountBehaviour */
-pub struct CountBehaviour {
-    pub c: i32,
-}
-
-impl Behaviour for CountBehaviour {
-    fn is_working(&self) -> bool {
-        false
-    }
-
-    fn run(&mut self, context: BehaviourRunContext) -> () {
-        context.in_buf.pop();
-        self.c += 1;
-        context.out_buf.push(NodeData::Int(self.c));
-    }
-
-    fn reset(&mut self) -> () {
-        self.c = 0;
-    }
-
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
-        //TODO: Implement this
-        return Ok(());
+        match self.next.as_mut() {
+            Some(next) => next.on_state_change(vars),
+            None => {}
+        }
     }
 }

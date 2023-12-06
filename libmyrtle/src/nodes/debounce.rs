@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String};
 
 use crate::{
-    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol,
+    Behaviour, BehaviourRunContext, ErrorCode, MemoryDataSource, NodeData, NodeArg, Symbol, VariableSet,
 };
 
 pub struct DebounceBehaviour {
@@ -36,7 +36,7 @@ impl Behaviour for DebounceBehaviour {
         self.last_tick = 0;
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("period") {
             Some(NodeArg::Base(NodeData::Int(p))) => self.period = p,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,

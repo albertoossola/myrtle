@@ -12,9 +12,11 @@ pub fn make_program(
 
     for (key, mut endpoint) in ast.device.endpoints.iter_mut() {
         let symbol = make_endpoint(adapter, &mut endpoint)?;
-
         machine.variables.insert(key.clone(), symbol);
     }
+
+
+    machine.init()?;
 
     return Ok(machine);
 }
@@ -28,6 +30,8 @@ pub fn make_machine(ast: &mut MachineAST) -> Result<Machine, ErrorCode> {
 
     let states = states_result?;
 
+    //Resume the main state
+    
     let machine = Machine {
         cur_state: String::from("entry"),
         variables: BTreeMap::new(),
@@ -50,6 +54,7 @@ fn make_state(ast: &mut StateAST) -> Result<State, ErrorCode> {
     let state = State {
         vars: BTreeMap::new(),
         flows,
+        suspended: true
     };
 
     return Ok(state);
@@ -115,7 +120,7 @@ fn make_node(ast: &mut NodeAST) -> Result<Node, ErrorCode> {
         .map(|(k, v)| (k.clone(), make_param(&v)))
         .collect();
 
-    behaviour.init(&mut args)?;
+    behaviour.set_args(&mut args)?;
 
     let node = Node {
         behaviour,

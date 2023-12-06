@@ -1,6 +1,6 @@
 use crate::{
     seq::{RepeatSeq, Seq},
-    Behaviour, BehaviourRunContext, ErrorCode, NodeArg,
+    Behaviour, BehaviourRunContext, ErrorCode, NodeArg, VariableSet,
 };
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec};
 use crate::seq::ChainSeq;
@@ -40,7 +40,7 @@ impl Behaviour for EmitBehaviour {
         self.seq.reset();
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("items") {
             Some(NodeArg::Seq(seq)) => self.seq = seq,
             None => Err(ErrorCode::ArgumentRequired)?,

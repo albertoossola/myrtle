@@ -1,6 +1,6 @@
 use alloc::collections::BTreeMap;
 use alloc::string::String;
-use crate::{Behaviour, BehaviourRunContext, ErrorCode, NodeData, NodeArg};
+use crate::{Behaviour, BehaviourRunContext, ErrorCode, NodeData, NodeArg, VariableSet};
 
 pub struct DelayBehaviour {
     pub interval : i32,
@@ -46,7 +46,7 @@ impl Behaviour for DelayBehaviour {
         self.received_at = 0;
     }
 
-    fn init(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
+    fn set_args(&mut self, args: &mut BTreeMap<String, NodeArg>) -> Result<(), ErrorCode> {
         match args.remove("ms") {
             Some(NodeArg::Base(NodeData::Int(p))) => self.interval = p,
             Some(_) => Err(ErrorCode::InvalidArgumentType)?,

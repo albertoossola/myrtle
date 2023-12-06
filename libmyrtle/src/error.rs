@@ -5,4 +5,5 @@ pub enum ErrorCode {
     ArgumentRequired,
     InvalidArgumentType,
     UnknownNodeKind,
+    EntryStateRequired
 }
