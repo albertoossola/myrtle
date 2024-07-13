@@ -1,7 +1,0 @@
-args {
-
-}
-
-machine rtc(@i2c, pub @time) {
-    timer(ms=1000) >> [:start, 0x33, 0x00, :end] >> i2c >> [_, b8] >>! @time;
-}

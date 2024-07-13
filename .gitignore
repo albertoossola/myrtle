@@ -1,8 +1,0 @@
-*/target
-**/Cargo.lock
-.vscode/
-.idea/
-
-# Added by cargo
-
-/target
